@@ -85,11 +85,17 @@ function hook_importer_finish($importer) {
 function tripal_get_importers() {
   $importers = [];
 
-  $modules = module_list(TRUE);
+  // $modules = module_list(TRUE); // D7 code
+  $moduleHandler = \Drupal::moduleHandler();
+  $modules = $moduleHandler->getModuleList();
+
   foreach ($modules as $module) {
     // Find all of the files in the tripal_chado/includes/fields directory.
     $loader_path = drupal_get_path('module', $module) . '/includes/TripalImporter';
-    $loader_files = file_scan_directory($loader_path, '/.inc$/');
+    
+    // $loader_files = file_scan_directory($loader_path, '/.inc$/'); // D7 code
+    $loader_files = \Drupal::service('file_system')->scanDirectory($loader_path, '/.inc$/');
+    
     // Iterate through the fields, include the file and run the info function.
     foreach ($loader_files as $file) {
       $class = $file->name;
@@ -115,7 +121,9 @@ function tripal_get_importers() {
  */
 function tripal_load_include_importer_class($class) {
 
-  $modules = module_list(TRUE);
+  $moduleHandler = \Drupal::moduleHandler();
+  $modules = $moduleHandler->getModuleList();
+  // $modules = module_list(TRUE); // D7 code
   foreach ($modules as $module) {
     $file_path = realpath(".") . '/' . drupal_get_path('module', $module) . '/includes/TripalImporter/' . $class . '.inc';
     if (file_exists($file_path)) {
