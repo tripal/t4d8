@@ -17,7 +17,28 @@ class TripalImporterForm implements FormInterface {
    * {@inheritdoc}
    */
   public function getFormID() {
-    return 'tripal_admin_form_register';
+    return 'tripal_admin_form_tripalimporter';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildForm(array $form, FormStateInterface $form_state) {
+  
+  }  
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    
+  }
+
+    /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+
   }
 
   /**
