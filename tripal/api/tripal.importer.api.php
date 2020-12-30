@@ -89,23 +89,30 @@ function tripal_get_importers() {
   $moduleHandler = \Drupal::moduleHandler();
   $modules = $moduleHandler->getModuleList();
 
-  foreach ($modules as $module) {
-    // Find all of the files in the tripal_chado/includes/fields directory.
-    $loader_path = drupal_get_path('module', $module) . '/includes/TripalImporter';
-    
-    // $loader_files = file_scan_directory($loader_path, '/.inc$/'); // D7 code
-    $loader_files = \Drupal::service('file_system')->scanDirectory($loader_path, '/.inc$/');
-    
-    // Iterate through the fields, include the file and run the info function.
-    foreach ($loader_files as $file) {
-      $class = $file->name;
-      module_load_include('inc', $module, 'includes/TripalImporter/' . $class);
-      if (class_exists($class) and is_subclass_of($class, 'TripalImporter')) {
-        $importers[] = $class;
+
+  foreach ($modules as $module => $module_details) {
+    try {
+      // Find all of the files in the tripal_chado/includes/fields directory.
+      $loader_path = drupal_get_path('module', $module) . '/includes/TripalImporter';
+
+      // $loader_files = file_scan_directory($loader_path, '/.inc$/'); // D7 code
+      $loader_files = \Drupal::service('file_system')->scanDirectory($loader_path, '/.inc$/');
+
+      // Iterate through the fields, include the file and run the info function.
+      foreach ($loader_files as $file) {
+        $class = $file->name;
+        module_load_include('inc', $module, 'includes/TripalImporter/' . $class);
+        if (class_exists($class) and is_subclass_of($class, 'TripalImporter')) {
+          $importers[] = $class;
+        }
       }
+    }
+    catch(Drupal\Core\File\Exception\FileException $e) {
+      // Ignore
     }
   }
   return $importers;
+  
 }
 
 /**
