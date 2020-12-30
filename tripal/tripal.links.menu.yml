@@ -109,6 +109,13 @@ tripal.data_loaders:
   parent: tripal.admin
   weight: 60
 
+tripal.data_loaders_tripalimporter:
+  route_name: tripal.data_loaders_tripalimporter
+  description: 'Tripal Importer'
+  title: 'Tripal Importer'
+  parent: tripal.data_loaders
+  weight: 10  
+
 tripal.data_collections:
   route_name: tripal.data_collections
   description: 'Site-wide settings for data collections'
