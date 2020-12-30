@@ -131,7 +131,7 @@ function tripal_load_include_importer_class($class) {
   $moduleHandler = \Drupal::moduleHandler();
   $modules = $moduleHandler->getModuleList();
   // $modules = module_list(TRUE); // D7 code
-  foreach ($modules as $module) {
+  foreach ($modules as $module => $module_details) {
     $file_path = realpath(".") . '/' . drupal_get_path('module', $module) . '/includes/TripalImporter/' . $class . '.inc';
     if (file_exists($file_path)) {
       module_load_include('inc', $module, 'includes/TripalImporter/' . $class);
