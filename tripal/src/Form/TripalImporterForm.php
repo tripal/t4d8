@@ -23,8 +23,10 @@ class TripalImporterForm implements FormInterface {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
-  
+  public function buildForm(array $form, FormStateInterface $form_state, $class = NULL) {
+    dpm($class);
+    $user = \Drupal::currentUser();
+    dpm($user);
   }  
 
   /**

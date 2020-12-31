@@ -83,12 +83,16 @@ function hook_importer_finish($importer) {
  * @ingroup tripal_importer_api
  */
 function tripal_get_importers() {
+  
   $importers = [];
 
   // $modules = module_list(TRUE); // D7 code
   $moduleHandler = \Drupal::moduleHandler();
   $modules = $moduleHandler->getModuleList();
 
+  // The additional importers extends TripalImporter so we need to
+  // import the main class or exceptions will occur
+  module_load_include('inc', 'tripal', 'includes/TripalImporter');
 
   foreach ($modules as $module => $module_details) {
     try {
@@ -131,6 +135,11 @@ function tripal_load_include_importer_class($class) {
   $moduleHandler = \Drupal::moduleHandler();
   $modules = $moduleHandler->getModuleList();
   // $modules = module_list(TRUE); // D7 code
+
+  // The additional importers extends TripalImporter so we need to
+  // import the main class or exceptions will occur
+  module_load_include('inc', 'tripal', 'includes/TripalImporter');
+    
   foreach ($modules as $module => $module_details) {
     $file_path = realpath(".") . '/' . drupal_get_path('module', $module) . '/includes/TripalImporter/' . $class . '.inc';
     if (file_exists($file_path)) {
