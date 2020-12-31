@@ -26,118 +26,147 @@ class TripalImporterForm implements FormInterface {
   public function buildForm(array $form, FormStateInterface $form_state, $class = NULL) {
     $user = \Drupal::currentUser();
 
-    // Load the specific importer from the class
-    tripal_load_include_importer_class($class);
-
-    $form['importer_class'] = [
-      '#type' => 'value',
-      '#value' => $class,
-    ];
-
-    if ((array_key_exists('file_upload', $class::$methods) and $class::$methods['file_upload'] == TRUE) or
-        (array_key_exists('file_local', $class::$methods) and $class::$methods['file_local'] == TRUE) or
-        (array_key_exists('file_remote', $class::$methods) and $class::$methods['file_remote'] == TRUE)) {
-      $form['file'] = [
-      '#type' => 'fieldset',
-      '#title' => t($class::$upload_title),
-      '#description' => t($class::$upload_description),
-      '#weight' => -15,
-      ];
+    // Let us do a basic check to make sure CHADO is installed since we need it
+    // for even the most basic form generation - particularly for analysis
+    $sql = "SELECT * FROM {analysis} ORDER BY name";
+    $hasChado = true;
+    try {
+      chado_query($sql);
+    }
+    catch(\Exception $ex) {
+      $hasChado = false;
     }
 
-    if (array_key_exists('file_upload', $class::$methods) and $class::$methods['file_upload'] == TRUE) {
-      // $existing_files = tripal_get_user_uploads($user->uid, $class::$file_types);
-      $existing_files = tripal_get_user_uploads($user->id(), $class::$file_types);
-      if (count($existing_files) > 0) {
-        $fids = [0 => '--Select a file--'];
-        foreach ($existing_files as $fid => $file) {
-          $fids[$fid] = $file->filename . ' (' . tripal_format_bytes($file->filesize) . ') ';
+    if($hasChado) {
+      // Load the specific importer from the class
+      tripal_load_include_importer_class($class);
+
+      $form['importer_class'] = [
+        '#type' => 'value',
+        '#value' => $class,
+      ];
+
+      if ((array_key_exists('file_upload', $class::$methods) and $class::$methods['file_upload'] == TRUE) or
+          (array_key_exists('file_local', $class::$methods) and $class::$methods['file_local'] == TRUE) or
+          (array_key_exists('file_remote', $class::$methods) and $class::$methods['file_remote'] == TRUE)) {
+        $form['file'] = [
+        '#type' => 'fieldset',
+        '#title' => t($class::$upload_title),
+        '#description' => t($class::$upload_description),
+        '#weight' => -15,
+        ];
+      }
+
+      if (array_key_exists('file_upload', $class::$methods) and $class::$methods['file_upload'] == TRUE) {
+        // $existing_files = tripal_get_user_uploads($user->uid, $class::$file_types);
+        $existing_files = tripal_get_user_uploads($user->id(), $class::$file_types);
+        if (count($existing_files) > 0) {
+          $fids = [0 => '--Select a file--'];
+          foreach ($existing_files as $fid => $file) {
+            $fids[$fid] = $file->filename . ' (' . tripal_format_bytes($file->filesize) . ') ';
+          }
+          $form['file']['file_upload_existing'] = [
+            '#type' => 'select',
+            '#title' => t('Existing Files'),
+            '#description' => t('You may select a file that is already uploaded.'),
+            '#options' => $fids,
+          ];
         }
-        $form['file']['file_upload_existing'] = [
-          '#type' => 'select',
-          '#title' => t('Existing Files'),
-          '#description' => t('You may select a file that is already uploaded.'),
-          '#options' => $fids,
+        $form['file']['file_upload'] = [
+          '#type' => 'html5_file',
+          '#title' => '',
+          '#description' => 'Remember to click the "Upload" button below to send ' .
+              'your file to the server.  This interface is capable of uploading very ' .
+              'large files.  If you are disconnected you can return, reload the file and it ' .
+              'will resume where it left off.  Once the file is uploaded the "Upload ' .
+              'Progress" will indicate "Complete".  If the file is already present on the server ' .
+              'then the status will quickly update to "Complete".',
+          '#usage_type' => 'tripal_importer',
+          '#usage_id' => 0,
+          '#allowed_types' => $class::$file_types,
+          '#cardinality' => $class::$cardinality,
         ];
       }
-      $form['file']['file_upload'] = [
-        '#type' => 'html5_file',
-        '#title' => '',
-        '#description' => 'Remember to click the "Upload" button below to send ' .
-            'your file to the server.  This interface is capable of uploading very ' .
-            'large files.  If you are disconnected you can return, reload the file and it ' .
-            'will resume where it left off.  Once the file is uploaded the "Upload ' .
-            'Progress" will indicate "Complete".  If the file is already present on the server ' .
-            'then the status will quickly update to "Complete".',
-        '#usage_type' => 'tripal_importer',
-        '#usage_id' => 0,
-        '#allowed_types' => $class::$file_types,
-        '#cardinality' => $class::$cardinality,
-      ];
-    }
 
-    if (array_key_exists('file_local', $class::$methods) and $class::$methods['file_local'] == TRUE) {
-      $form['file']['file_local'] = [
-        '#title' => t('Server path'),
-        '#type' => 'textfield',
-        '#maxlength' => 5120,
-        '#description' => t('If the file is local to the Tripal server please provide the full path here.'),
-      ];
-    }
-    if (array_key_exists('file_remote', $class::$methods) and $class::$methods['file_remote'] == TRUE) {
-        $form['file']['file_remote'] = [
-          '#title' => t('Remote path'),
+      if (array_key_exists('file_local', $class::$methods) and $class::$methods['file_local'] == TRUE) {
+        $form['file']['file_local'] = [
+          '#title' => t('Server path'),
           '#type' => 'textfield',
-          '#maxlength' => 5102,
-          '#description' => t('If the file is available via a remote URL please provide the full URL here.  The file will be downloaded when the importer job is executed.'),
+          '#maxlength' => 5120,
+          '#description' => t('If the file is local to the Tripal server please provide the full path here.'),
         ];
-    }
-
-    if ($class::$use_analysis) {
-      // get the list of analyses
-      $sql = "SELECT * FROM {analysis} ORDER BY name";
-      $org_rset = chado_query($sql);
-      $analyses = [];
-      $analyses[''] = '';
-      while ($analysis = $org_rset->fetchObject()) {
-        $analyses[$analysis->analysis_id] = "$analysis->name ($analysis->program $analysis->programversion, $analysis->sourcename)";
       }
-      $form['analysis_id'] = [
-        '#title' => t('Analysis'),
-        '#type' => t('select'),
-        '#description' => t('Choose the analysis to which the uploaded data will be associated. ' .
-            'Why specify an analysis for a data load?  All data comes from some place, even if ' .
-            'downloaded from a website. By specifying analysis details for all data imports it ' .
-            'provides provenance and helps end user to reproduce the data set if needed. At ' .
-            'a minimum it indicates the source of the data.'),
-        '#required' => $class::$require_analysis,
-        '#options' => $analyses,
-        '#weight' => -14,
+      if (array_key_exists('file_remote', $class::$methods) and $class::$methods['file_remote'] == TRUE) {
+          $form['file']['file_remote'] = [
+            '#title' => t('Remote path'),
+            '#type' => 'textfield',
+            '#maxlength' => 5102,
+            '#description' => t('If the file is available via a remote URL please provide the full URL here.  The file will be downloaded when the importer job is executed.'),
+          ];
+      }
+
+      if ($class::$use_analysis) {
+        // get the list of analyses
+        $sql = "SELECT * FROM {analysis} ORDER BY name";
+        $org_rset = chado_query($sql);
+        $analyses = [];
+        $analyses[''] = '';
+        while ($analysis = $org_rset->fetchObject()) {
+          $analyses[$analysis->analysis_id] = "$analysis->name ($analysis->program $analysis->programversion, $analysis->sourcename)";
+        }
+        $form['analysis_id'] = [
+          '#title' => t('Analysis'),
+          '#type' => t('select'),
+          '#description' => t('Choose the analysis to which the uploaded data will be associated. ' .
+              'Why specify an analysis for a data load?  All data comes from some place, even if ' .
+              'downloaded from a website. By specifying analysis details for all data imports it ' .
+              'provides provenance and helps end user to reproduce the data set if needed. At ' .
+              'a minimum it indicates the source of the data.'),
+          '#required' => $class::$require_analysis,
+          '#options' => $analyses,
+          '#weight' => -14,
+        ];
+      }
+
+      // Retrieve the forms from the custom TripalImporter class
+      // for this loader.
+      $importer = new $class();
+      $element = [];
+      $element_form = $importer->form($element, $form_state);
+      // Quick check to make sure we had an array returned so array_merge() works.
+      if (!is_array($element_form)) {
+        $element_form = array();
+      }
+
+      // Merge the custom form with our default one.
+      // This way, the custom TripalImporter can use the #weight property
+      // to change the order of their elements in reference to the default ones.
+      $form = array_merge($form, $element_form);
+
+      $form['button'] = [
+        '#type' => 'submit',
+        '#value' => t($class::$button_text),
+        '#weight' => 10,
       ];
+      return $form;
+    }    
+    else {
+      global $base_url;
+      $form['error'] = array(
+        '#markup' => '<p>We could not detect CHADO. You must install it
+          in order to perform imports.<br /> 
+          <h3>CHADO Installation Instructions</h3>
+          You can install CHADO by visiting
+          <a href="'. $base_url .'/admin/tripal/storage/chado/install">here</a>.
+          <br /> 
+          This will create a job which you can then execute by visiting
+           <a href="' . $base_url . '/admin/tripal/tripal_jobs">here</a> and 
+           ensuring you select <b>Execute</b> under the <b>Actions</b> dropdown 
+           element for the Chado install job.<br />
+          </p>'
+      );
+      return $form;
     }
-
-    // Retrieve the forms from the custom TripalImporter class
-    // for this loader.
-    $importer = new $class();
-    $element = [];
-    $element_form = $importer->form($element, $form_state);
-    // Quick check to make sure we had an array returned so array_merge() works.
-    if (!is_array($element_form)) {
-      $element_form = arry();
-    }
-
-    // Merge the custom form with our default one.
-    // This way, the custom TripalImporter can use the #weight property
-    // to change the order of their elements in reference to the default ones.
-    $form = array_merge($form, $element_form);
-
-    $form['button'] = [
-      '#type' => 'submit',
-      '#value' => t($class::$button_text),
-      '#weight' => 10,
-    ];
-    return $form;    
-    
   }  
 
   /**
