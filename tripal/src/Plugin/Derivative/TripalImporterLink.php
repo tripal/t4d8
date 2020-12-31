@@ -45,11 +45,14 @@ class TripalImporterLink extends DeriverBase implements ContainerDeriverInterfac
  
     $importers = tripal_get_importers();
     foreach($importers as $class_name) {
+        $importer_object = new $class_name;
         $links[$class_name] = [
-            'title' => $class_name,
+            'title' => $importer_object::$name,
+            'description' => $importer_object::$description,
             'route_name' => 'tripal.data_loaders_tripalimporter',
             'route_parameters' => ['class' => $class_name]
         ] + $base_plugin_definition;
+        unset($importer_object);
     }
  
     return $links;
