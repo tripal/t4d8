@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/tripal/t4d8.svg?branch=9.x-4.x)](https://travis-ci.org/tripal/t4d8)
+![PHPUnit-Tests](https://github.com/tripal/t4d8/workflows/PHPUnit-Tests/badge.svg)
 
 
 ![alt tag](https://raw.githubusercontent.com/tripal/tripal/7.x-3.x/tripal/theme/images/tripal_logo.png)
@@ -36,7 +36,5 @@ This upgrade to Drupal 8 is a community effort. As such, we NEED YOUR HELP!
   - If more documentation would be helpful, [let us know what is missing here](https://github.com/tripal/t4d8/issues/16) and we'll add it
 
 # Timeline
-
-We are currently running **approximately one month behind schedule -we need your help!** We still plan to release the Tripal 4 alpha on time although it may not include Data Importers.
 
 [![timeline](docs/Tripal4-Upgrade-Timeline.png)](https://time.graphics/line/387503)

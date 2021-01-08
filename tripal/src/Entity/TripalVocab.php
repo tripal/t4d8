@@ -7,6 +7,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\tripal\Entity\TripalVocabInterface;
 
 /**
  * Defines the Controlled Vocabulary entity.
@@ -15,12 +16,11 @@ use Drupal\Core\Entity\EntityStorageInterface;
  *
  * @ContentEntityType(
  *   id = "tripal_vocab",
- *   label = @Translation("Tripal Controlled Vocabulary"),
+ *   label = @Translation("Tripal Vocabulary"),
  *   handlers = {
  *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
  *     "list_builder" = "Drupal\tripal\ListBuilders\TripalVocabListBuilder",
  *     "views_data" = "Drupal\tripal\Entity\TripalVocabViewsData",
- *     "translation" = "Drupal\tripal\TripalVocabTranslationHandler",
  *
  *     "form" = {
  *       "default" = "Drupal\tripal\Form\TripalVocabForm",
@@ -38,7 +38,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
  *   admin_permission = "administer controlled vocabulary entities",
  *   entity_keys = {
  *     "id" = "id",
- *     "label" = "vocabulary",
+ *     "label" = "name",
  *   },
  *   links = {
  *     "canonical" = "/admin/structure/tripal_vocab/{tripal_vocab}",
@@ -49,7 +49,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
  *   },
  * )
  */
-class TripalVocab extends ContentEntityBase implements ContentEntityInterface {
+class TripalVocab extends ContentEntityBase implements TripalVocabInterface {
 
   /**
    * {@inheritdoc}
@@ -59,36 +59,28 @@ class TripalVocab extends ContentEntityBase implements ContentEntityInterface {
   }
 
   /**
-   * @see \Drupal\core\Entity\ContentEntityInterface::getID()
+   * {@inheritdoc}
    */
   public function getID() {
     return $this->get('id')->value;
   }
 
   /**
-   * @see \Drupal\core\Entity\ContentEntityInterface::getLabel()
+   * {@inheritdoc}
    */
   public function getLabel() {
-    return $this->get('vocabulary')->value;
+    return $this->get('name')->value;
   }
 
   /**
-   * @see \Drupal\core\Entity\ContentEntityInterface::setLabel()
-   */
-  public function setLabel($vocabulary) {
-    $this->set('vocabulary', $vocabulary);
-    return $this;
-  }
-
-  /**
-   *
+   * {@inheritdoc}
    */
   public function getName() {
     return $this->get('name')->value;
   }
 
   /**
-   *
+   * {@inheritdoc}
    */
   public function setName($name) {
     $this->set('name', $name);
@@ -96,14 +88,29 @@ class TripalVocab extends ContentEntityBase implements ContentEntityInterface {
   }
 
   /**
-   *
+   * {@inheritdoc}
+   */
+  public function getNamespace() {
+    return $this->get('namespace')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setNamespace($namespace) {
+    $this->set('namespace', $namespace);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function getDescription() {
     return $this->get('description')->value;
   }
 
   /**
-   *
+   * {@inheritdoc}
    */
   public function setDescription($description) {
     $this->set('description', $description);
@@ -111,14 +118,29 @@ class TripalVocab extends ContentEntityBase implements ContentEntityInterface {
   }
 
   /**
-   * @see \Drupal\tripal\Entity\TripalVocabInterface::getCreatedTime()
+   * {@inheritdoc}
+   */
+  public function getURL() {
+    return $this->get('url')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setURL($url) {
+    $this->set('url', $url);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function getCreatedTime() {
     return $this->get('created')->value;
   }
 
   /**
-   * @see \Drupal\tripal\Entity\TripalVocabInterface::setCreatedTime()
+   * {@inheritdoc}
    */
   public function setCreatedTime($timestamp) {
     $this->set('created', $timestamp);
@@ -128,16 +150,54 @@ class TripalVocab extends ContentEntityBase implements ContentEntityInterface {
   /**
    * {@inheritdoc}
    */
+  public function getChangedTime() {
+    return $this->get('changed')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setChangedTime($timestamp) {
+    $this->set('changed', $timestamp);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getChangedTimeAcrossTranslations() {
+    return $this->get('changed')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getNumberofTerms() {
+    // @todo implement this ;-p.
+    return 0;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDetails() {
+    $details = [];
+
+    $details['TripalVocab'] = $this;
+    $details['name'] = $this->getName();
+    $details['namespace'] = $this->getNamespace();
+    $details['description'] = $this->getDescription();
+    $details['URL'] = $this->getURL();
+    $vocabulary['num_terms'] = $this->getNumberofTerms();
+
+    return $details;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
-
-    $fields['vocabulary'] = BaseFieldDefinition::create('string')
-      ->setLabel(t('Vocabulary Name'))
-      ->setDescription(t('The short name for the vocabulary (e.g. SO, PATO, etc.).'))
-      ->setSettings(array(
-        'max_length' => 1024,
-        'text_processing' => 0,
-      ));
 
     $fields['name'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Vocabulary Name'))
@@ -147,10 +207,26 @@ class TripalVocab extends ContentEntityBase implements ContentEntityInterface {
         'text_processing' => 0,
       ));
 
+    $fields['namespace'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Vocabulary Namespace'))
+      ->setDescription(t('The namespace for the vocabulary (e.g. sequence).'))
+      ->setSettings(array(
+        'max_length' => 1024,
+        'text_processing' => 0,
+      ));
+
     $fields['description'] = BaseFieldDefinition::create('string_long')
       ->setLabel(t('Vocabulary Description'))
       ->setDescription(t('A description for the vocabulary.'))
       ->setSettings(array(
+        'text_processing' => 0,
+      ));
+
+    $fields['url'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Vocabulary URL'))
+      ->setDescription(t('The URL providing a reference for this vocabulary.'))
+      ->setSettings(array(
+        'max_length' => 1024,
         'text_processing' => 0,
       ));
 

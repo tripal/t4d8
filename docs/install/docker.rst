@@ -31,7 +31,7 @@ Setup
 
     .. code::
 
-      docker run --publish=9000:80 --name=t4d8 -tid --volume=`pwd`:/var/www/drupal8/web/modules/my_module tripalproject/tripaldocker:latest
+      docker run --publish=9000:80 --name=t4d8 -tid --volume=`pwd`:/var/www/drupal8/web/modules/contrib/my_module tripalproject/tripaldocker:latest
 
 2. Start the PostgreSQL database.
 
@@ -59,22 +59,22 @@ Usage
 
    .. code::
 
-     docker exec t4d8 phpunit --configuration core core/modules/simpletest/tests
+    docker exec --workdir=/var/www/drupal8/web/modules/contrib/tripal t4d8 phpunit
 
  - Run Drupal Console to generate code for your module!
 
    .. code::
 
-     docker exec t4d8 drupal generate:module
+    docker exec t4d8 drupal generate:module
 
  - Run Drush to rebuild the cache
 
    .. code::
 
-     docker exec t4d8 drush cr
+    docker exec t4d8 drush cr
 
  - Run Composer to upgrade Drupal
 
    .. code::
 
-     docker exec t4d8 composer up
+    docker exec t4d8 composer up

@@ -11,7 +11,7 @@ COPY . /app
 RUN chmod -R +x /app && apt-get update 1> ~/aptget.update.log \
   && apt-get install git unzip zip wget gnupg2 supervisor vim --yes -qq 1> ~/aptget.extras.log
 
-########## POTSGRESQL #########################################################
+########## POSTGRESQL #########################################################
 
 ## See https://stackoverflow.com/questions/51033689/how-to-fix-error-on-postgres-install-ubuntu
 RUN mkdir -p /usr/share/man/man1 && mkdir -p /usr/share/man/man7
@@ -42,12 +42,15 @@ USER root
 RUN mv /app/default_files/postgresql/pg_hba.conf /etc/postgresql/11/main/pg_hba.conf
 
 ## And add ``listen_addresses`` to ``/etc/postgresql/11/main/postgresql.conf``
-RUN echo "listen_addresses='*'" >> /etc/postgresql/11/main/postgresql.conf
-
-## Expose the PostgreSQL port
-EXPOSE 5432
+RUN echo "listen_addresses='*'" >> /etc/postgresql/11/main/postgresql.conf \
+  && echo "max_locks_per_transaction = 1024" >> /etc/postgresql/11/main/postgresql.conf
 
 ########## PHP EXTENSIONS #####################################################
+RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+## Xdebug
+RUN pecl install xdebug-3.0.1 \
+    && docker-php-ext-enable xdebug \
+    && echo "xdebug.mode = coverage" >> /usr/local/etc/php/php.ini
 ## install the PHP extensions we need
 RUN set -eux; \
 	\
@@ -129,17 +132,15 @@ RUN export COMPOSER_MEMORY_LIMIT=-1 \
   && composer create-project drupal-composer/drupal-project:8.x-dev drupal8 --stability dev --no-interaction
 
 ## Set files directory permissions
-RUN chown -R www-data:www-data /var/www/drupal8 \
+RUN mkdir /var/www/drupal8/web/sites/default/files/simpletest \
+  && chown -R www-data:www-data /var/www/drupal8 \
   && chmod 02775 -R /var/www/drupal8/web/sites/default/files \
   && usermod -g www-data root
 
-## Expose http and psql port
-EXPOSE 80 5432
-
 ## Install Drupal.
 RUN cd /var/www/drupal8 \
-  && service apache2 start \
-  && service postgresql start \
+  && service apache2 restart \
+  && service postgresql restart \
   && sleep 30 \
   && /var/www/drupal8/vendor/drush/drush/drush site-install standard \
   --db-url=pgsql://drupaladmin:drupal8developmentonlylocal@localhost/sitedb \
@@ -151,17 +152,14 @@ RUN cd /var/www/drupal8 \
 
 ############# Tripal ##########################################################
 
-## Get Tripal for Github.
-RUN cd /var/www/drupal8/web/modules \
-  && git clone --single-branch --branch 9.x-4.x https://github.com/tripal/t4d8.git
-
 WORKDIR /var/www/drupal8
-RUN service apache2 start \
-  && service postgresql start \
+RUN service apache2 restart \
+  && service postgresql restart \
   && sleep 30 \
+  && composer require tripal/tripal \
   && composer require drupal/devel \
   && vendor/bin/drush en devel tripal tripal_chado -y \
-  && vendor/bin/drush php-eval "module_load_include('inc', 'tripal_chado', 'src/LegacyIncludes/tripal_chado.install'); tripal_chado_install_chado('Install Chado v1.3');"
+  && vendor/bin/drush trp-install-chado
 
 ############# Scripts #########################################################
 
@@ -179,5 +177,8 @@ RUN ln -s /var/www/drupal8/vendor/drupal/console/bin/drupal /usr/local/bin/ \
 
 ## Set the working directory to DRUPAL_ROOT
 WORKDIR /var/www/drupal8/web
+
+## Expose http and psql port
+EXPOSE 80 5432
 
 ENTRYPOINT ["init.sh"]
