@@ -113,7 +113,6 @@ tripal.data_loaders:
 tripal.data_loaders_tripalimporterlink:
   class: Drupal\tripal\Plugin\Menu\TripalImporterLink
   deriver: Drupal\tripal\Plugin\Derivative\TripalImporterLink
-# menu_name: product
   parent: tripal.data_loaders
   weight: 10
 
