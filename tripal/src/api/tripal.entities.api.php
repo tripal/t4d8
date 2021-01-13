@@ -165,14 +165,22 @@ function tripal_load_entity($entity_type, $ids = FALSE, $reset = FALSE, $field_i
 
   // Don't load entities that are not Tripal Entities
   if ($entity_type != 'TripalEntity') {
-    return \Drupal::entityTypeManager()->getStorage($entity_type)->load($ids); // This works, but not for multiple
+    return \Drupal::entityTypeManager()->getStorage($entity_type)->load($ids);
   }
 
-  // Get the entity_controller for TripalEntity
+  // Get the entity_controller for TripalEntity (machine name tripal_entity)
   $ec = \Drupal::entityTypeManager()->getStorage($entity_type);
   if ($reset) {
     $ec->resetCache();
   }
 
-  return $ec->load($ids, $conditions, $field_ids, $cache);
+  // Load the entity or entities
+  // @todo do we need to support $ids=FALSE ?
+  if (is_array($ids)) {
+    return $ec->loadMultiple($ids);
+  }
+  else
+  {
+    return $ec->load($ids);
+  }
 }
