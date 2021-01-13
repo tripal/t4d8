@@ -152,7 +152,12 @@ function theme_token_list($tokens) {
 }
 
 /**
- * Replacement for Drupal's entity_load function
+ * Replacement for Drupal's entity_load function. This will return
+ * 
+ * @todo The rest of this comment
+ * 
+ * @return
+ *    An array of entity objects indexed by their ids, otherwise an empty array
  */
 function tripal_load_entity($entity_type, $ids = FALSE, $reset = FALSE, $field_ids = [], $cache = TRUE) {
   // TODO Do we still need to provide a $conditions array for the load() function in the Entity Controller?
@@ -160,10 +165,11 @@ function tripal_load_entity($entity_type, $ids = FALSE, $reset = FALSE, $field_i
 
   // Don't load entities that are not Tripal Entities
   if ($entity_type != 'TripalEntity') {
-    return entity_load($entity_type, $ids, $conditions, $reset);
+    return \Drupal::entityTypeManager()->getStorage($entity_type)->load($ids); // This works, but not for multiple
   }
 
-  $ec = entity_get_controller($entity_type);
+  // Get the entity_controller for TripalEntity
+  $ec = \Drupal::entityTypeManager()->getStorage($entity_type);
   if ($reset) {
     $ec->resetCache();
   }
