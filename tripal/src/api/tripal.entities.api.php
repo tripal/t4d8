@@ -154,12 +154,30 @@ function theme_token_list($tokens) {
 /**
  * Replacement for Drupal's entity_load function. This will return
  * 
- * @todo The rest of this comment
+ * This function should be used for loading Tripal Entities. It provides
+ * greater control to limit which fields are loaded with the entity. By
+ * default, Drupal will try to load all fields. This may not always be
+ * the case (some fields are large/complex, the site developer may desire
+ * loading fields via AJAX, the user of web services may wish to specify
+ * which fields to include, etc.)
  * 
+ * @todo Does this function still need to support #ids = FALSE ?
+ * @todo Can new Drupal/Tripal entity handling support $field_ids, $cache?
+ * 
+ * @param $entity_type :
+ *   The entity type to load. Designed for tripal_entity but can hand off others
+ *   back to Drupal.
+ * @param $ids :
+ *   A single entity_id (int) or a list of entity_ids (array)
+ * @param $reset :
+ *   Whether to reset the internal cache for the requested entity type.
+ *   Defaults to FALSE.
+ * @param $field_ids : unsupported
+ * @param $cache : unsupported
  * @return
  *    An array of entity objects indexed by their ids, otherwise an empty array
  */
-function tripal_load_entity($entity_type, $ids = FALSE, $reset = FALSE, $field_ids = [], $cache = TRUE) {
+function tripal_load_entity($entity_type, $ids, $reset = FALSE, $field_ids = [], $cache = TRUE) {
   // TODO Do we still need to provide a $conditions array for the load() function in the Entity Controller?
   $conditions = [];
 
@@ -175,7 +193,6 @@ function tripal_load_entity($entity_type, $ids = FALSE, $reset = FALSE, $field_i
   }
 
   // Load the entity or entities
-  // @todo do we need to support $ids=FALSE ?
   if (is_array($ids)) {
     return $ec->loadMultiple($ids);
   }
