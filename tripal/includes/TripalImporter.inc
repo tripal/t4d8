@@ -300,13 +300,14 @@ class TripalImporter {
    * @throws Exception
    */
   public function create($run_args, $file_details = []) {
-    global $user;
+    // global $user;
+    $user = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
     $class = get_called_class();
 
     try {
       // Build the values for the tripal_importer table insert.
       $values = [
-        'uid' => $user->uid,
+        'uid' => $user->get('uid')->value,
         'class' => $class,
         'submit_date' => time(),
       ];

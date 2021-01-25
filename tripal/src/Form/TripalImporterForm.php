@@ -173,13 +173,141 @@ class TripalImporterForm implements FormInterface {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    
+
+
+    // TODO: Convert the below D7 code to D8/D9
+    global $user;
+
+    //$run_args = $form_state['values'];
+    $form_values = $form_state->getValues();
+    $run_args = $form_values;
+    $class = $form_values['importer_class'];
+    tripal_load_include_importer_class($class);
+
+    // Remove the file_local and file_upload args. We'll add in a new
+    // full file path and the fid instead.
+    unset($run_args['file_local']);
+    unset($run_args['file_upload']);
+    unset($run_args['file_upload_existing']);
+    unset($run_args['form_build_id']);
+    unset($run_args['form_token']);
+    unset($run_args['form_id']);
+    unset($run_args['op']);
+    unset($run_args['button']);
+
+    $file_local = NULL;
+    $file_upload = NULL;
+    $file_remote = NULL;
+    $file_existing = NULL;
+
+    // Get the form values for the file.
+    if (array_key_exists('file_local', $class::$methods) and $class::$methods['file_local'] == TRUE) {
+      $file_local = trim($form_values['file_local']);
+    }
+    if (array_key_exists('file_upload', $class::$methods) and $class::$methods['file_upload'] == TRUE) {
+      $file_upload = trim($form_values['file_upload']);
+      if (array_key_exists('file_upload_existing', $form_values) and $form_values['file_upload_existing']) {
+        $file_existing = trim($form_values['file_upload_existing']);
+      }
+    }
+    if (array_key_exists('file_remote', $class::$methods) and $class::$methods['file_remote'] == TRUE) {
+      $file_remote = trim($form_values['file_remote']);
+    }
+
+    // Sumbit a job for this loader.
+    $fname = '';
+    $fid = NULL;
+    $file_details = [];
+    if ($file_existing) {
+        $file_details['fid'] = $file_existing;
+    }
+    elseif ($file_local) {
+      $fname = preg_replace("/.*\/(.*)/", "$1", $file_local);
+      $file_details['file_local'] = $file_local;
+    }
+    elseif ($file_upload) {
+      $file_details['fid'] = $file_upload;
+    }
+    elseif ($file_remote) {
+      $file_details['file_remote'] = $file_remote;
+    }
+    try {
+      // Now allow the loader to do its own submit if needed.
+      $importer = new $class();
+      $importer->formSubmit($form, $form_state);
+      // If the formSubmit made changes to the $form_state we need to update the
+      // $run_args info.
+      if ($run_args !== $form_values) {
+        $run_args = $form_values;
+      }
+
+      // If the importer wants to rebuild the form for some reason then let's
+      // not add a job.
+      if ($form_state->isRebuilding() == TRUE) {
+        return;
+      }
+
+      $importer->create($run_args, $file_details);
+      $importer->submitJob();
+
+    } catch (Exception $e) {
+        drupal_set_message('Cannot submit import: ' . $e->getMessage(), 'error');
+    }  
   }
 
     /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
+    // Convert the validation code into the D8/9 equivalent
+    $form_values = $form_state->getValues();
+    $class = $form_values['importer_class'];
+    var_dump($class);
+    tripal_load_include_importer_class($class);
+
+    $file_local = NULL;
+    $file_upload = NULL;
+    $file_remote = NULL;
+    $file_existing = NULL;
+
+    // Get the form values for the file.
+    if (array_key_exists('file_local', $class::$methods) and $class::$methods['file_local'] == TRUE) {
+      $file_local = trim($form_values['file_local']);
+      // If the file is local make sure it exists on the local filesystem.
+      if ($file_local) {
+        // check to see if the file is located local to Drupal
+        $file_local = trim($file_local);
+        $dfile = $_SERVER['DOCUMENT_ROOT'] . base_path() . $file_local;
+        if (!file_exists($dfile)) {
+          // if not local to Drupal, the file must be someplace else, just use
+          // the full path provided
+          $dfile = $file_local;
+        }
+        if (!file_exists($dfile)) {
+          // form_set_error('file_local', t("Cannot find the file on the system. Check that the file exists or that the web server has permissions to read the file."));
+          $form_state->setErrorByName('file_local', t("Cannot find the file on the system. Check that the file exists or that the web server has permissions to read the file."));
+        }
+      }
+    }
+    if (array_key_exists('file_upload', $class::$methods) and $class::$methods['file_upload'] == TRUE) {
+      $file_upload = trim($form_values['file_upload']);
+      if (array_key_exists('file_upload_existing', $form_values) and $form_values['file_upload_existing']) {
+        $file_existing = $form_values['file_upload_existing'];
+      }
+    }
+    if (array_key_exists('file_remote', $class::$methods) and $class::$methods['file_remote'] == TRUE) {
+      $file_remote = trim($form_values['file_remote']);
+    }
+
+    // The user must provide at least an uploaded file or a local file path.
+    if ($class::$file_required == TRUE and !$file_upload and !$file_local and !$file_remote and !$file_existing) {
+      $form_state->setErrorByName('file_local', t("You must provide a file."));
+    }
+
+    // Now allow the loader to do validation of it's form additions.
+    $importer = new $class();
+    $importer->formValidate($form, $form_state);    
+
 
   }
 

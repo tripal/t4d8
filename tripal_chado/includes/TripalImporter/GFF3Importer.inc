@@ -1,4 +1,6 @@
 <?php
+use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormStateInterface;
 
 class GFF3Importer extends TripalImporter {
 
@@ -255,38 +257,43 @@ class GFF3Importer extends TripalImporter {
   /**
    * @see TripalImporter::formValidate()
    */
-  public function formValidate($form, &$form_state) {
+  //public function formValidate($form, &$form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) { 
+    $form_values = $form_state->getValues();
 
-    $organism_id = $form_state['values']['organism_id'];
-    $target_organism_id = $form_state['values']['target_organism_id'];
-    $target_type = trim($form_state['values']['target_type']);
-    $create_target = $form_state['values']['create_target'];
-    $create_organism = $form_state['values']['create_organism'];
-    $add_only = $form_state['values']['add_only'];
-    $update = $form_state['values']['update'];
-    $refresh = 0; //$form_state['values']['refresh'];
-    $remove = 0; //$form_state['values']['remove'];
-    $use_transaction = $form_state['values']['use_transaction'];
-    $line_number = trim($form_state['values']['line_number']);
-    $landmark_type = trim($form_state['values']['landmark_type']);
-    $alt_id_attr = trim($form_state['values']['alt_id_attr']);
-    $re_mrna = trim($form_state['values']['re_mrna']);
-    $re_protein = trim($form_state['values']['re_protein']);
+    $organism_id = $form_values['organism_id'];
+    $target_organism_id = $form_values['target_organism_id'];
+    $target_type = trim($form_values['target_type']);
+    $create_target = $form_values['create_target'];
+    $create_organism = $form_values['create_organism'];
+    $add_only = $form_values['add_only'];
+    $update = $form_values['update'];
+    $refresh = 0; //$form_values['refresh'];
+    $remove = 0; //$form_values['remove'];
+    $use_transaction = $form_values['use_transaction'];
+    $line_number = trim($form_values['line_number']);
+    $landmark_type = trim($form_values['landmark_type']);
+    $alt_id_attr = trim($form_values['alt_id_attr']);
+    $re_mrna = trim($form_values['re_mrna']);
+    $re_protein = trim($form_values['re_protein']);
 
     // @coder-ignore: there are no functions being called here
     if (($add_only AND ($update OR $refresh OR $remove)) OR
       ($update AND ($add_only OR $refresh OR $remove)) OR
       ($refresh AND ($update OR $add_only OR $remove)) OR
       ($remove AND ($update OR $refresh OR $add_only))) {
-      form_set_error('add_only', t("Please select only one checkbox from the import options section"));
+      // form_set_error('add_only', t("Please select only one checkbox from the import options section"));
+      $form_state->setErrorByName('add_only', t("Please select only one checkbox from the import options section"));
     }
 
     if ($line_number and !is_numeric($line_number) or $line_number < 0) {
-      form_set_error('line_number', t("Please provide an integer line number greater than zero."));
+      // form_set_error('line_number', t("Please provide an integer line number greater than zero."));
+      $form_state->setErrorByName('line_number', t("Please provide an integer line number greater than zero."));
     }
 
     if (!($re_mrna and $re_protein) and ($re_mrna or $re_protein)) {
-      form_set_error('re_uname', t("You must provide both a regular expression for mRNA and a replacement string for protein"));
+      // form_set_error('re_uname', t("You must provide both a regular expression for mRNA and a replacement string for protein"));
+      $form_state->setErrorByName('re_uname', t("You must provide both a regular expression for mRNA and a replacement string for protein"));
     }
 
     // check the regular expression to make sure it is valid
@@ -296,11 +303,13 @@ class GFF3Importer extends TripalImporter {
     $result = preg_replace("/" . $re_mrna . "/", $re_protein, NULL);
     restore_error_handler();
     if ($result_re === FALSE) {
-      form_set_error('re_mrna', 'Invalid regular expression.');
+      // form_set_error('re_mrna', 'Invalid regular expression.');
+      $form_state->setErrorByName('re_mrna', 'Invalid regular expression.');
     }
     else {
       if ($result === FALSE) {
-        form_set_error('re_protein', 'Invalid replacement string.');
+        // form_set_error('re_protein', 'Invalid replacement string.');
+        $form_state->setErrorByName('re_mrna', 'Invalid regular expression.');
       }
     }
   }
