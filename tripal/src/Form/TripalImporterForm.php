@@ -64,7 +64,7 @@ class TripalImporterForm implements FormInterface {
           $fids = [0 => '--Select a file--'];
           foreach ($existing_files as $fid => $file) {
             //$fids[$fid] = $file->filename . ' (' . tripal_format_bytes($file->filesize) . ') '; // old
-            $fids[$fid] = $file->getFilename() . ' (' . tripal_format_bytes($file->filesize) . ') ';
+            $fids[$fid] = $file->getFilename() . ' (' . tripal_format_bytes($file->getSize()) . ') ';
           }
           $form['file']['file_upload_existing'] = [
             '#type' => 'select',
