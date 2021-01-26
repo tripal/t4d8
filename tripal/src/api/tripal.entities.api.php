@@ -222,7 +222,7 @@ function tripal_load_term_entity($values) {
       $query->fields('tt',['id'])
         ->fields('tv', ['vocabulary']);
     $db_response = $query->execute();
-    $results = $db_response->fetchAll(\PDO::FETCH_OBJ);
+    $term = $db_response->fetchAll(\PDO::FETCH_OBJ);
   }
 
   else {
@@ -233,7 +233,7 @@ function tripal_load_term_entity($values) {
       $query->fields('tt', ['id'])
         ->condition('tt.id', $term_id);
       $db_response = $query->execute();
-      $results = $db_response->fetchAll(\PDO::FETCH_OBJ);
+      $term = $db_response->fetchObject();
     }
   }
   
@@ -241,6 +241,44 @@ function tripal_load_term_entity($values) {
     $entity = entity_load('TripalTerm', [$term->id]);
     return reset($entity);
   }
-  // Nothing worked, repturn nothing
+  return NULL;
+}
+
+/**
+ * Retrieves a TripalVocab entity that matches the given arguments.
+ * 
+ * @param $values
+ *   An associatve array used to match a vocabulary.
+ *   Valid keys (either, not both):
+ *     - vocab_id: integer id of the vocabulary
+ *     - vocabulary: string name of the vocabulary
+ * 
+ * @return
+ *   A TripalVocab entity object or NULL if not found
+ * 
+ * @ingroup tripal_entities_api
+ */
+function tripal_load_vocab_entity($values) {
+  $vocabulary = array_key_exists('vocabulary', $values) ? $values['vocabulary'] : '';
+  $vocab_id = array_key_exists('vocab_id', $values) ? $values['vocab_id'] : '';
+  $vocab = NULL;
+
+  $connection = \Drupal::database();
+  $query = $connection->select('tripal_vocab', 'tv');
+    $query->fields('tv');
+    // Assemble conditions based on arguments
+    if ($vocabulary) {
+      $query->condition('tv.vocabulary', $vocabulary);
+    }
+    if ($vocab_id) {
+      $query->condition('tv.id', $vocab_id);
+    }
+  $db_response = $query->execute();
+  $vocab = $db_response->fetchObject();
+
+  if (!$vocab) {
+    $entity = entity_load('TripalVocab', [$vocab->id]);
+    return reset($entity);
+  }
   return NULL;
 }
