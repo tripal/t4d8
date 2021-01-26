@@ -201,3 +201,46 @@ function tripal_load_entity($entity_type, $ids, $reset = FALSE, $field_ids = [],
     return $ec->load($ids);
   }
 }
+
+/**
+ * @todo test this when actual data gets added.
+ */
+function tripal_load_term_entity($values) {
+  // Which values are we working with?
+  $vocabulary = array_key_exists('vocabulary', $values) ? $values['vocabulary'] : '';
+  $accession = array_key_exists('accession', $values) ? $values['accession'] : '';
+  $term_id = array_key_exists('term_id', $values) ? $values['term_id'] : '';
+
+  $term = NULL;
+
+  // First option: $vocabulary AND $accession
+  if ($vocabulary and $accession) {
+    // Assemble the query
+    $connection = \Drupal::database();
+    $query = $connection->select('tripal_term', 'tt');
+      $query->join('tripal_vocab', 'tv', 'tv.id = tt.vocab_id');
+      $query->fields('tt',['id'])
+        ->fields('tv', ['vocabulary']);
+    $db_response = $query->execute();
+    $results = $db_response->fetchAll(\PDO::FETCH_OBJ);
+  }
+
+  else {
+    // Second option: $term_id
+    if ($term_id) {
+      $connection = \Drupal::database();
+      $query = $connection->select('tripal_term', 'tt');
+      $query->fields('tt', ['id'])
+        ->condition('tt.id', $term_id);
+      $db_response = $query->execute();
+      $results = $db_response->fetchAll(\PDO::FETCH_OBJ);
+    }
+  }
+  
+  if ($term) {
+    $entity = entity_load('TripalTerm', [$term->id]);
+    return reset($entity);
+  }
+  // Nothing worked, repturn nothing
+  return NULL;
+}
