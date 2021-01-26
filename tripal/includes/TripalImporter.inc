@@ -342,7 +342,8 @@ class TripalImporter {
           foreach ($fids as $fid) {
             $file = file_load($fid);
             $arguments['files'][] = [
-              'file_path' => drupal_realpath($file->uri),
+              // 'file_path' => drupal_realpath($file->uri), // old
+              'file_path' => \Drupal::service('file_system')->realpath($file->getFileUri()),
               'fid' => $fid,
             ];
             $has_file++;
@@ -353,14 +354,16 @@ class TripalImporter {
           $fid = $file_details['fid'];
           $file = file_load($fid);
           $arguments['files'][] = [
-            'file_path' => drupal_realpath($file->uri),
+            // 'file_path' => drupal_realpath($file->uri), // old
+            'file_path' => \Drupal::service('file_system')->realpath($file->getFileUri()),
             'fid' => $fid,
           ];
           $has_file++;
 
           // For backwards compatibility add the old 'file' element.
           $arguments['file'] = [
-            'file_path' => drupal_realpath($file->uri),
+            // 'file_path' => drupal_realpath($file->uri), // old
+            'file_path' => \Drupal::service('file_system')->realpath($file->getFileUri()),
             'fid' => $fid,
           ];
         }
@@ -423,7 +426,8 @@ class TripalImporter {
    *   The ID of the newly submitted job.
    */
   public function submitJob() {
-    global $user;
+    $user = \Drupal::currentUser();
+    $uid = $user->id();
 
     $class = get_called_class();
 
@@ -436,7 +440,7 @@ class TripalImporter {
       $args = [$this->import_id];
       $includes = [];
       $job_id = tripal_add_job($class::$button_text, 'tripal',
-        'tripal_run_importer', $args, $user->uid, 10, $includes);
+        'tripal_run_importer', $args, $uid, 10, $includes);
 
       return $job_id;
     } catch (Exception $e) {
