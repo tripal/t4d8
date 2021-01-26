@@ -24,6 +24,8 @@ require_once 'src/api/tripal.jobs.api.php';
 require_once 'src/api/tripal.importer.api.php';
 require_once 'src/api/tripal.deprecated.api.php';
 
+require_once 'includes/TripalImporter.inc';
+
 /**
  * Implements hook_help().
  */

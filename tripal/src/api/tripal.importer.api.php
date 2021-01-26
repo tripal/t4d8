@@ -168,7 +168,7 @@ function tripal_load_include_importer_class($class) {
  *
  * @ingroup tripal_importer_api
  */
-function tripal_run_importer($import_id, TripalJob $job = NULL) {
+function tripal_run_importer($import_id, \Drupal\tripal\Services\TripalJob $job = NULL) {
 
   $loader = NULL;
   $loader = TripalImporter::byID($import_id);
