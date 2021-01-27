@@ -105,7 +105,6 @@ class TripalImporterForm implements FormInterface {
             '#description' => t('If the file is available via a remote URL please provide the full URL here.  The file will be downloaded when the importer job is executed.'),
           ];
       }
-
       if ($class::$use_analysis) {
         // get the list of analyses
         $sql = "SELECT * FROM {analysis} ORDER BY name";
@@ -117,7 +116,7 @@ class TripalImporterForm implements FormInterface {
         }
         $form['analysis_id'] = [
           '#title' => t('Analysis'),
-          '#type' => t('select'),
+          '#type' => 'select',
           '#description' => t('Choose the analysis to which the uploaded data will be associated. ' .
               'Why specify an analysis for a data load?  All data comes from some place, even if ' .
               'downloaded from a website. By specifying analysis details for all data imports it ' .
