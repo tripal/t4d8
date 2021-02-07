@@ -89,6 +89,16 @@ class FASTAImporter extends TripalImporter {
     // get the sequence ontology CV ID
     $values = ['name' => 'sequence'];
     $cv = chado_select_record('cv', ['cv_id'], $values);
+    if(count($cv) <= 0) {
+      //Display a warning that Sequence Ontology needs to be installed
+      $logger = \Drupal::service('tripal.logger');
+      $error_message = 'The Sequence Ontology needs to be installed before '
+        . 'you can successfully submit FASTA form.';
+      $logger->error($error_message);
+
+      $messenger = \Drupal::messenger();
+      $messenger->addError($error_message);
+    }
     $cv_id = $cv[0]->cv_id;
 
     $form['seqtype'] = [
