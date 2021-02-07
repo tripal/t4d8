@@ -41,11 +41,12 @@ class TripalImporterForm implements FormInterface {
       // Load the specific importer from the class
       tripal_load_include_importer_class($class);
 
+      
       $form['importer_class'] = [
         '#type' => 'value',
         '#value' => $class,
       ];
-
+      
       if ((array_key_exists('file_upload', $class::$methods) and $class::$methods['file_upload'] == TRUE) or
           (array_key_exists('file_local', $class::$methods) and $class::$methods['file_local'] == TRUE) or
           (array_key_exists('file_remote', $class::$methods) and $class::$methods['file_remote'] == TRUE)) {
@@ -56,7 +57,7 @@ class TripalImporterForm implements FormInterface {
         '#weight' => -15,
         ];
       }
-
+      
       if (array_key_exists('file_upload', $class::$methods) and $class::$methods['file_upload'] == TRUE) {
         // $existing_files = tripal_get_user_uploads($user->uid, $class::$file_types);
         $existing_files = tripal_get_user_uploads($user->id(), $class::$file_types);
@@ -88,7 +89,7 @@ class TripalImporterForm implements FormInterface {
           '#cardinality' => $class::$cardinality,
         ];
       }
-
+      
       if (array_key_exists('file_local', $class::$methods) and $class::$methods['file_local'] == TRUE) {
         $form['file']['file_local'] = [
           '#title' => t('Server path'),
@@ -97,6 +98,7 @@ class TripalImporterForm implements FormInterface {
           '#description' => t('If the file is local to the Tripal server please provide the full path here.'),
         ];
       }
+      
       if (array_key_exists('file_remote', $class::$methods) and $class::$methods['file_remote'] == TRUE) {
           $form['file']['file_remote'] = [
             '#title' => t('Remote path'),
@@ -105,6 +107,7 @@ class TripalImporterForm implements FormInterface {
             '#description' => t('If the file is available via a remote URL please provide the full URL here.  The file will be downloaded when the importer job is executed.'),
           ];
       }
+
       if ($class::$use_analysis) {
         // get the list of analyses
         $sql = "SELECT * FROM {analysis} ORDER BY name";
@@ -127,7 +130,7 @@ class TripalImporterForm implements FormInterface {
           '#weight' => -14,
         ];
       }
-
+      
       // Retrieve the forms from the custom TripalImporter class
       // for this loader.
       $importer = new $class();
@@ -137,7 +140,7 @@ class TripalImporterForm implements FormInterface {
       if (!is_array($element_form)) {
         $element_form = array();
       }
-
+      
       // Merge the custom form with our default one.
       // This way, the custom TripalImporter can use the #weight property
       // to change the order of their elements in reference to the default ones.
@@ -148,6 +151,7 @@ class TripalImporterForm implements FormInterface {
         '#value' => t($class::$button_text),
         '#weight' => 10,
       ];
+      
       return $form;
     }    
     else {

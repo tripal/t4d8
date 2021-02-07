@@ -58,13 +58,15 @@ class GFF3Importer extends TripalImporter {
     while ($organism = $org_rset->fetchObject()) {
       $organisms[$organism->organism_id] = "$organism->genus $organism->species ($organism->common_name)";
     }
+
     $form['organism_id'] = [
       '#title' => t('Organism'),
-      '#type' => t('select'),
+      '#type' => 'select',
       '#description' => t("Choose the organism to which these sequences are associated"),
       '#required' => TRUE,
       '#options' => $organisms,
     ];
+
 
     // Advanced Options
     $form['advanced'] = [
@@ -85,7 +87,7 @@ class GFF3Importer extends TripalImporter {
 
     $form['advanced']['landmark_type'] = [
       '#title' => t('Landmark Type'),
-      '#type' => t('textfield'),
+      '#type' => 'textfield',
       '#description' => t("Optional. Use this field to specify a Sequence Ontology type
        for the landmark sequences in the GFF fie (e.g. 'chromosome'). If the GFF file
        contains a '##sequence-region' line that describes the landmark sequences to
@@ -96,7 +98,7 @@ class GFF3Importer extends TripalImporter {
 
     $form['advanced']['alt_id_attr'] = [
       '#title' => t('ID Attribute'),
-      '#type' => t('textfield'),
+      '#type' => 'textfield',
       '#description' => t("Optional. Sometimes lines in the GFF file are missing the
       required ID attribute that specifies the unique name of the feature, but there
       may be another attribute that can uniquely identify the feature.  If so,
@@ -225,7 +227,7 @@ class GFF3Importer extends TripalImporter {
     ];
     $form['advanced']['targets']['target_organism_id'] = [
       '#title' => t('Target Organism'),
-      '#type' => t('select'),
+      '#type' => 'select',
       '#description' => t("Optional. Choose the organism to which target sequences belong.
       Select this only if target sequences belong to a different organism than the
       one specified above. And only choose an organism here if all of the target sequences
@@ -236,7 +238,7 @@ class GFF3Importer extends TripalImporter {
     ];
     $form['advanced']['targets']['target_type'] = [
       '#title' => t('Target Type'),
-      '#type' => t('textfield'),
+      '#type' => 'textfield',
       '#description' => t("Optional. If the unique name for a target sequence is not unique (e.g. a protein
        and an mRNA have the same name) then you must specify the type for all targets in the GFF file. If
        the targets are of different types then the type must be specified using the 'target_type=type' attribute
@@ -250,7 +252,6 @@ class GFF3Importer extends TripalImporter {
        using the 'target_organism' and 'target_type' fields specified in the GFF file.  Values specified in the
        GFF file take precedence over those specified above."),
     ];
-
     return $form;
   }
 
