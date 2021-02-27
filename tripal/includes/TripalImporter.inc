@@ -220,7 +220,7 @@ class TripalImporter {
    * @param TripalJob $job
    *   An optional TripalJob object that this loader is associated with.
    */
-  public function __construct(TripalJob $job = NULL) {
+  public function __construct(Drupal\tripal\Services\TripalJob $job = NULL) {
 
     // Intialize the private member variables.
     $this->is_prepared = FALSE;
@@ -278,7 +278,7 @@ class TripalImporter {
    * @param TripalJob $job
    *   An instance of a TripalJob.
    */
-  public function setJob(TripalJob $job) {
+  public function setJob(Drupal\tripal\Services\TripalJob $job) {
     $this->job = $job;
   }
 

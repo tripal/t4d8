@@ -160,6 +160,8 @@ function tripal_file_upload($type, $filename, $action = NULL, $chunk = 0) {
   // \Drupal::service('file_system')->realpath('');
   // $user_dir = tripal_get_user_files_dir($uid); //old
   $user_dir = \Drupal::service('file_system')->realpath(tripal_get_user_files_dir($uid));
+  // \Drupal::logger('tripal')->notice("User upload dir is " . $user_dir);
+
   if (!tripal_is_user_files_dir_writeable($uid)) {
     $message = "The user's data directory is not writeable: !user_dir";
     \Drupal::logger('tripal')->error($message, [
