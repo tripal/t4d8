@@ -95,6 +95,44 @@ class chadoInstaller extends bulkPgSchemaInstaller {
         'updated' => \Drupal::time()->getRequestTime(),
       ])
       ->execute();
+
+    // Attempt to add the tripal_gff_temp table into chado
+    $this->tripal_chado_add_tripal_gff_temp_table();
+  }
+
+  public function tripal_chado_add_tripal_gff_temp_table() {
+    $schema = [
+      'table' => 'tripal_gff_temp',
+      'fields' => [
+        'feature_id' => [
+          'type' => 'int',
+          'not null' => TRUE,
+        ],
+        'organism_id' => [
+          'type' => 'int',
+          'not null' => TRUE,
+        ],
+        'uniquename' => [
+          'type' => 'text',
+          'not null' => TRUE,
+        ],
+        'type_name' => [
+          'type' => 'varchar',
+          'length' => '1024',
+          'not null' => TRUE,
+        ],
+      ],
+      'indexes' => [
+        'tripal_gff_temp_idx0' => ['feature_id'],
+        'tripal_gff_temp_idx0' => ['organism_id'],
+        'tripal_gff_temp_idx1' => ['uniquename'],
+      ],
+      'unique keys' => [
+        'tripal_gff_temp_uq0' => ['feature_id'],
+        'tripal_gff_temp_uq1' => ['uniquename', 'organism_id', 'type_name'],
+      ],
+    ];
+    chado_create_custom_table('tripal_gff_temp', $schema, TRUE, NULL, FALSE);
   }
 
   /**

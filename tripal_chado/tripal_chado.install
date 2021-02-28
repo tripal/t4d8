@@ -22,48 +22,6 @@ function tripal_chado_schema() {
   $schema['chado_tripalvocabspace'] = tripal_chado_chado_vocabidspace();
   $schema['chado_tripalterm'] = tripal_chado_chado_term();
 
-  // Add assisting temp tables
-  $schema['tripal_gff_temp'] = tripal_chado_gff_temp_schema();
-
-
-/**
- * Returns the Drupal Schema API array for the tripal_gff_temp table.
- */
-function tripal_chado_gff_temp_schema() {
-  return [
-    'fields' => [
-      'feature_id' => [
-        'type' => 'int',
-        'not null' => TRUE,
-      ],
-      'organism_id' => [
-        'type' => 'int',
-        'not null' => TRUE,
-      ],
-      'uniquename' => [
-        'type' => 'text',
-        'not null' => TRUE,
-      ],
-      'type_name' => [
-        'type' => 'varchar',
-        'length' => '1024',
-        'not null' => TRUE,
-      ],
-    ],
-    'indexes' => [
-      'tripal_gff_temp_idx0' => ['feature_id'],
-      'tripal_gff_temp_idx0' => ['organism_id'],
-      'tripal_gff_temp_idx1' => ['uniquename'],
-    ],
-    'unique keys' => [
-      'tripal_gff_temp_uq0' => ['feature_id'],
-      'tripal_gff_temp_uq1' => ['uniquename', 'organism_id', 'type_name'],
-    ],
-  ];  
-}
-
-
-
   return $schema;
 }
 
