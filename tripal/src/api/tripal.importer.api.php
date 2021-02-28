@@ -183,7 +183,7 @@ function tripal_run_importer($import_id, \Drupal\tripal\Services\TripalJob $job 
 
   try {
     // Call the hook_importer_start functions.
-    $modules = module_implements('importer_start');
+    $modules = \Drupal::moduleHandler()->getImplementations('importer_start');
     foreach ($modules as $module) {
       $function = $module . '_importer_start';
       $function($loader);
@@ -196,7 +196,7 @@ function tripal_run_importer($import_id, \Drupal\tripal\Services\TripalJob $job 
     tripal_run_importer_post_run($loader, $job);
 
     // Call the hook_importer_finish functions.
-    $modules = module_implements('importer_finish');
+    $modules = \Drupal::moduleHandler()->getImplementations('importer_finish');
     foreach ($modules as $module) {
       $function = $module . '_importer_finish';
       $function($loader);
