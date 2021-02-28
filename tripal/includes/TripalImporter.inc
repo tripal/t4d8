@@ -376,7 +376,14 @@ class TripalImporter {
 
       // Store the arguments in the class and serialize for table insertion.
       $this->arguments = $arguments;
-      $values['arguments'] = serialize($arguments);
+      //$values['arguments'] = serialize($arguments); //old serialize arguments
+      $values['arguments'] = base64_encode(serialize($arguments));
+
+      // Temporary debug code
+      $logger = \Drupal::service('tripal.logger');
+      $logger->notice(
+        "arguments:\n" . print_r($arguments, true) . "\n\n"
+      );
 
       // Insert the importer record.
       $import_id = db_insert('tripal_import')
@@ -413,7 +420,8 @@ class TripalImporter {
       throw new Exception('The importer specified by the given ID does not match this importer class.');
     }
 
-    $this->arguments = unserialize($import->arguments);
+    //$this->arguments = unserialize($import->arguments);
+    $this->arguments = unserialize(base64_decode($import->arguments));
     $this->import_id = $import_id;
 
   }
