@@ -175,48 +175,8 @@ function tripal_schema() {
   // Adds a table for administrative notifications on the dashboard.
   $schema['tripal_admin_notifications'] = tripal_tripal_admin_notifications_schema();
 
-  // Add assisting temp tables
-  $schema['tripal_gff_temp'] = tripal_tripal_gff_temp_schema();
-
   return $schema;
 }
-
-/**
- * Returns the Drupal Schema API array for the tripal_gff_temp table.
- */
-function tripal_tripal_gff_temp_schema() {
-  return [
-    'fields' => [
-      'feature_id' => [
-        'type' => 'int',
-        'not null' => TRUE,
-      ],
-      'organism_id' => [
-        'type' => 'int',
-        'not null' => TRUE,
-      ],
-      'uniquename' => [
-        'type' => 'text',
-        'not null' => TRUE,
-      ],
-      'type_name' => [
-        'type' => 'varchar',
-        'length' => '1024',
-        'not null' => TRUE,
-      ],
-    ],
-    'indexes' => [
-      'tripal_gff_temp_idx0' => ['feature_id'],
-      'tripal_gff_temp_idx0' => ['organism_id'],
-      'tripal_gff_temp_idx1' => ['uniquename'],
-    ],
-    'unique keys' => [
-      'tripal_gff_temp_uq0' => ['feature_id'],
-      'tripal_gff_temp_uq1' => ['uniquename', 'organism_id', 'type_name'],
-    ],
-  ];  
-}
-
 
 /**
  * Returns the Drupal Schema API array for the tripal_jobs table.
