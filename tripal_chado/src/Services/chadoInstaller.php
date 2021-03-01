@@ -100,6 +100,8 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $this->tripal_chado_add_tripal_gff_temp_table();
     // Attempt to add the tripal_gffprotein_temp table into chado
     $this->tripal_chado_add_tripal_gffprotein_temp_table();
+    // Attempt to add the tripal_chado_add_tripal_gffcds_temp table into chado
+    $this->tripal_chado_add_tripal_gffcds_temp_table();
   }
 
   public function tripal_chado_add_tripal_gff_temp_table() {
@@ -169,6 +171,42 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     chado_create_custom_table('tripal_gffprotein_temp', $schema, TRUE, NULL, FALSE);
   }
   
+  public function tripal_chado_add_tripal_gffcds_temp_table() {
+    $schema = [
+      'table' => 'tripal_gffcds_temp',
+      'fields' => [
+        'feature_id' => [
+          'type' => 'int',
+          'not null' => TRUE,
+        ],
+        'parent_id' => [
+          'type' => 'int',
+          'not null' => TRUE,
+        ],
+        'phase' => [
+          'type' => 'int',
+          'not null' => FALSE,
+        ],
+        'strand' => [
+          'type' => 'int',
+          'not null' => TRUE,
+        ],
+        'fmin' => [
+          'type' => 'int',
+          'not null' => TRUE,
+        ],
+        'fmax' => [
+          'type' => 'int',
+          'not null' => TRUE,
+        ],
+      ],
+      'indexes' => [
+        'tripal_gff_temp_idx0' => ['feature_id'],
+        'tripal_gff_temp_idx0' => ['parent_id'],
+      ],
+    ];
+    chado_create_custom_table('tripal_gffcds_temp', $schema, TRUE, NULL, FALSE);
+  }
 
   /**
    * Updates chado in the specified schema.
