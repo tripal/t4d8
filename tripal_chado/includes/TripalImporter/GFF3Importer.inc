@@ -468,11 +468,7 @@ class GFF3Importer extends TripalImporter {
       throw new Exception(t("Cannot find the file: !dfile", ['!dfile' => $dfile]));
     }
 
-    //DEBUG
-    $logger = \Drupal::service('tripal.logger');
-    $logger->notice('Opening gff_file: ' . $gff_file);
-
-    $this->logMessage("Opening !gff_file", ['!gff_file' => $gff_file]);
+    $this->logger->info("Opening $gff_file");
 
     //$lines = file($dfile,FILE_SKIP_EMPTY_LINES);
     $fh = fopen($dfile, 'r');
@@ -525,7 +521,7 @@ class GFF3Importer extends TripalImporter {
     // iterate through each line of the GFF file
     while ($line = fgets($fh)) {
       $line_num++;
-      $size = drupal_strlen($line);
+      $size = mb_strlen($line);
       $this->addItemsHandled($size);
       $num_read += $size;
 
