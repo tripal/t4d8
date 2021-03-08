@@ -532,7 +532,7 @@ class GFF3Importer extends TripalImporter {
       // check to see if we have FASTA section, if so then set the variable
       // to start parsing
       if (preg_match('/^##FASTA/i', $line)) {
-        $this->logMessage("Parsing FASTA portion...");
+        $this->logger->info("Parsing FASTA portion...");
         if ($remove) {
           // we're done because this is a delete operation so break out of the loop.
           break;
@@ -699,11 +699,15 @@ class GFF3Importer extends TripalImporter {
                 }
               }
               else {
+                /*
                 $this->logMessage("The organism attribute '%org' on line %line does not exist. Skipping this line.",
                   [
                     '%org' => $attr_organism,
                     '%line' => $line_num,
                   ], TRIPAL_ERROR);
+                */
+                $this->logger->error("The organism attribute '$attr_organism' on line $line_num does not exist. 
+                  Skipping this line.");
                 $skip_feature = 1;
               }
             }
@@ -713,9 +717,13 @@ class GFF3Importer extends TripalImporter {
             }
           }
           else {
+            /*
             $this->logMessage("The organism attribute '%org' on line %line is not properly formated. It " .
               "should be of the form: organism=Genus:species.  Skipping this line.",
               ['%org' => $attr_organism, '%line' => $line_num], TRIPAL_ERROR);
+            */
+            $this->logger->error("The organism attribute '$attr_organism' on line $line_num is not properly formated. It " .
+              "should be of the form: organism=Genus:species.  Skipping this line.");
             $skip_feature = 1;
           }
         }
@@ -943,7 +951,8 @@ class GFF3Importer extends TripalImporter {
       $sql = "SELECT feature_id FROM {tripal_gffcds_temp} LIMIT 1 OFFSET 1";
       $has_cds = chado_query($sql)->fetchField();
       if ($has_cds) {
-        $this->logMessage("\nAdding protein sequences if CDS exist and no proteins in GFF...");
+        //$this->logMessage("\nAdding protein sequences if CDS exist and no proteins in GFF...");
+        $this->logger->info("\nAdding protein sequences if CDS exist and no proteins in GFF...");
         $sql = "
           SELECT F.feature_id, F.name, F.uniquename, TGCT.strand,
             CVT.cvterm_id, CVT.name as feature_type,
@@ -1018,7 +1027,7 @@ class GFF3Importer extends TripalImporter {
         }
       }
 
-      $this->logMessage("Setting ranks of children...");
+      $this->logger->info("Setting ranks of children...");
 
       // Get features in a relationship that are also children of an alignment.
       $sql = "
@@ -1131,14 +1140,12 @@ class GFF3Importer extends TripalImporter {
     if (!$type_id) {
       $result = chado_select_record('feature', ['type_id'], $values);
       if (count($result) > 1) {
-        $this->logMessage("Cannot find feature type for, '!subject' , in 'derives_from' relationship. Multiple matching features exist with this uniquename.",
-          ['!subject' => $object], TRIPAL_WARNING);
+        $this->logger->warning("Cannot find feature type for, '$object' , in 'derives_from' relationship. Multiple matching features exist with this uniquename.");
         return;
       }
       else {
         if (count($result) == 0) {
-          $this->logMessage("Cannot find feature type for, '!subject' , in 'derives_from' relationship.",
-            ['!subject' => $object], TRIPAL_WARNING);
+          $this->logger->warning("Cannot find feature type for, '$object' , in 'derives_from' relationship.");
           return '';
         }
         else {
@@ -1155,12 +1162,10 @@ class GFF3Importer extends TripalImporter {
     ];
     $ofeature = chado_select_record('feature', ['feature_id'], $match);
     if (count($ofeature) == 0) {
-      $this->logMessage("Could not add 'Derives_from' relationship " .
-        "for %uniquename and %subject.  Subject feature, '%subject', " .
-        "cannot be found.", [
-        '%uniquename' => $feature->uniquename,
-        '%subject' => $subject,
-      ], TRIPAL_ERROR);
+      $this->logger->error("Could not add 'Derives_from' relationship " .
+        "for " . $feature->uniquename . 
+        " and $subject.  Subject feature, '$subject', " .
+        "cannot be found.");
       return;
     }
 
@@ -1199,11 +1204,8 @@ class GFF3Importer extends TripalImporter {
     // finally insert the relationship if it doesn't exist
     $ret = chado_insert_record('feature_relationship', $values);
     if (!$ret) {
-      $this->logMessage("Could not add 'Derives_from' relationship for :uniquename and :subject.",
-        [
-          ':uniquename' => $feature->uniquename,
-          ':subject' => $subject,
-        ], TRIPAL_WARNING);
+      $this->logger->warning("Could not add 'Derives_from' relationship for " . 
+      $feature->uniquename . " and $subject.");
     }
   }
 
