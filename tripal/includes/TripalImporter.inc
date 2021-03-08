@@ -185,6 +185,12 @@ class TripalImporter {
   protected $job;
 
   /**
+   * The drupal logger for tripal. This allows any of the importers to 
+   * send log messages.
+   */
+  protected $logger;
+
+  /**
    * The arguments needed for the importer. This is a list of key/value
    * pairs in an associative array.
    */
@@ -231,6 +237,10 @@ class TripalImporter {
     $this->interval = 1;
     $this->num_handled = 0;
     $this->prev_update = 0;
+
+
+    // Initialize the logger.
+    $this->logger = \Drupal::service('tripal.logger');  
   }
 
   /**
@@ -280,6 +290,7 @@ class TripalImporter {
    */
   public function setJob(Drupal\tripal\Services\TripalJob $job) {
     $this->job = $job;
+    $this->logger->setJob($job);
   }
 
   /**
