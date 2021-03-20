@@ -1,5 +1,5 @@
 services:
     tripal_chado.chadoInstaller:
         class: Drupal\tripal_chado\Services\chadoInstaller
-  tripal_chado.chadorecord:
-        class: Drupal\tripal_chado\Services\TripalChadoRecord          
+    tripal_chado.chadorecord:
+        class: Drupal\tripal_chado\Services\ChadoRecord          

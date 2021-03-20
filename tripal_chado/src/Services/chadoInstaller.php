@@ -102,6 +102,34 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $this->tripal_chado_add_tripal_gffprotein_temp_table();
     // Attempt to add the tripal_chado_add_tripal_gffcds_temp table into chado
     $this->tripal_chado_add_tripal_gffcds_temp_table();
+    // Attempt to add the tripal_chado_add_tripal_cv_obo table into chado
+    $this->tripal_chado_add_tripal_cv_obo_table();
+  }
+
+  public function tripal_chado_add_tripal_cv_obo_table() {
+    $schema = [
+      'table' => 'tripal_cv_obo',
+      'fields' => [
+        'obo_id' => [
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE
+        ],
+        'name' => [
+          'type' => 'varchar',
+          'length' => 255
+        ],
+        'path'  => [
+          'type' => 'varchar',
+          'length' => 1024
+        ],
+      ],
+      'indexes' => [
+        'tripal_cv_obo_idx1' => ['obo_id'],
+      ],
+      'primary key' => ['obo_id'],
+    ];
+    chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
   }
 
   public function tripal_chado_add_tripal_gff_temp_table() {
