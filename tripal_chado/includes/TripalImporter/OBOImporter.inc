@@ -388,17 +388,18 @@ class OBOImporter extends TripalImporter {
    * @see TripalImporter::formSubmit()
    */
   public function formSubmit($form, &$form_state) {
-    $obo_id = $form_state['values']['obo_id'];
-    $obo_name = trim($form_state['values']['obo_name']);
-    $obo_url = trim($form_state['values']['obo_url']);
-    $obo_file = trim($form_state['values']['obo_file']);
-    $uobo_name = array_key_exists('uobo_name', $form_state['values']) ? trim($form_state['values']['uobo_name']) : '';
-    $uobo_url = array_key_exists('uobo_url', $form_state['values']) ? trim($form_state['values']['uobo_url']) : '';
-    $uobo_file = array_key_exists('uobo_file', $form_state['values']) ? trim($form_state['values']['uobo_file']) : '';
+    $form_values = $form_state->getValues();
+    $obo_id = $form_values['values']['obo_id'];
+    $obo_name = trim($form_values['values']['obo_name']);
+    $obo_url = trim($form_values['values']['obo_url']);
+    $obo_file = trim($form_values['values']['obo_file']);
+    $uobo_name = array_key_exists('uobo_name', $form_values['values']) ? trim($form_values['values']['uobo_name']) : '';
+    $uobo_url = array_key_exists('uobo_url', $form_values['values']) ? trim($form_values['values']['uobo_url']) : '';
+    $uobo_file = array_key_exists('uobo_file', $form_values['values']) ? trim($form_values['values']['uobo_file']) : '';
 
     // If the user requested to alter the details then do that.
-    if ($form_state['clicked_button']['#name'] == 'update_obo_details') {
-      $form_state['rebuild'] = TRUE;
+    if ($form_values['clicked_button']['#name'] == 'update_obo_details') {
+      $form_values['rebuild'] = TRUE;
       $success = db_update('tripal_cv_obo')
         ->fields([
           'name' => $uobo_name,
@@ -423,7 +424,7 @@ class OBOImporter extends TripalImporter {
         ->execute();
 
       // Add the obo_id to the form_state values.
-      $form_state['values']['obo_id'] = $obo_id;
+      $form_values['values']['obo_id'] = $obo_id;
 
       if ($obo_id) {
         drupal_set_message(t("The vocabulary !vocab has been added.", ['!vocab' => $obo_name]));
@@ -439,7 +440,7 @@ class OBOImporter extends TripalImporter {
    * @see TripalImporter::formValidate()
    */
   // public function formValidate($form, &$form_state) {
-    public function validateForm(array &$form, FormStateInterface $form_state) {  
+  public function validateForm(array &$form, FormStateInterface $form_state) {  
     $obo_id = $form_state['values']['obo_id'];
     $obo_name = trim($form_state['values']['obo_name']);
     $obo_url = trim($form_state['values']['obo_url']);
