@@ -408,12 +408,13 @@ class OBOImporter extends TripalImporter {
         ->condition('obo_id', $obo_id)
         ->execute();
       if ($success) {
-        drupal_set_message(t("The vocabulary !vocab has been updated.", ['!vocab' => $uobo_name]));
+        // drupal_set_message(t("The vocabulary !vocab has been updated.", ['!vocab' => $uobo_name]));
+        $this->messenger->addMessage("The vocabulary $uobo_name has been updated.", 'custom');
       }
       else {
-        drupal_set_message(t("The vocabulary !vocab could not be updated.", ['!vocab' => $uobo_name]), 'error');
+        // drupal_set_message(t("The vocabulary !vocab could not be updated.", ['!vocab' => $uobo_name]), 'error');
+        $this->messenger->addError("The vocabulary $uobo_name could not be updated.");
       }
-
     }
     elseif (!empty($obo_name)) {
       $obo_id = db_insert('tripal_cv_obo')
@@ -427,11 +428,13 @@ class OBOImporter extends TripalImporter {
       $form_values['obo_id'] = $obo_id;
 
       if ($obo_id) {
-        drupal_set_message(t("The vocabulary !vocab has been added.", ['!vocab' => $obo_name]));
+        // drupal_set_message(t("The vocabulary !vocab has been added.", ['!vocab' => $obo_name]));
+        $this->messenger->addMessage("The vocabulary $obo_name has been added.", 'custom');
       }
       else {
         $form_state['rebuild'] = TRUE;
-        drupal_set_message(t("The vocabulary !vocab could not be added.", ['!vocab' => $obo_name]), 'error');
+        // drupal_set_message(t("The vocabulary !vocab could not be added.", ['!vocab' => $obo_name]), 'error');
+        $this->messenger->addError("The vocabulary $obo_name could not be added.");
       }
     }
   }
@@ -546,27 +549,27 @@ class OBOImporter extends TripalImporter {
     $this->used_terms['rdfs:comment'] = $term->cvterm_id;
 
     // Make sure we have a 'synonym_type' vocabulary.
-    $syn_cv = new ChadoRecord('cv');
+    $syn_cv = new \Drupal\tripal_chado\Services\ChadoRecord('cv');
     $syn_cv->setValues(['name' => 'synonym_type']);
     $syn_cv->save();
     $this->all_cvs['synonym_type'] = (object) $syn_cv->getValues();
 
     // Make sure we have a 'synonym_type' database.
-    $syn_db = new ChadoRecord('db');
+    $syn_db = new \Drupal\tripal_chado\Services\ChadoRecord('db');
     $syn_db->setValues(['name' => 'synonym_type']);
     $syn_db->save();
     $this->all_dbs['synonym_type'] = (object) $syn_db->getValues();
 
     // Make sure the synonym types exists in the 'synonym_type' vocabulary.
     foreach (array_keys($this->syn_types) as $syn_type) {
-      $syn_dbxref = new ChadoRecord('dbxref');
+      $syn_dbxref = new \Drupal\tripal_chado\Services\ChadoRecord('dbxref');
       $syn_dbxref->setValues([
         'accession' => $syn_type,
         'db_id' => $syn_db->getID(),
       ]);
       $syn_dbxref->save();
 
-      $syn_term = new ChadoRecord('cvterm');
+      $syn_term = new \Drupal\tripal_chado\Services\ChadoRecord('cvterm');
       $syn_term->setValues([
         'name' => $syn_type,
         'cv_id' => $syn_cv->getID(),
@@ -1243,7 +1246,7 @@ class OBOImporter extends TripalImporter {
     // We need to locate terms using their dbxref. This is because term names
     // can sometimes change, so we don't want to look up the term by it's name.
     // the unique ID which is in the accession will never change.
-    $dbxref = new ChadoRecord('dbxref');
+    $dbxref = new \Drupal\tripal_chado\Services\ChadoRecord('dbxref');
     $dbxref->setValues([
       'db_id' => $db->db_id,
       'accession' => $accession,
@@ -1253,7 +1256,7 @@ class OBOImporter extends TripalImporter {
       // Does this accession already have a cvterm it's associated with? Then
       // we need to make we will update the name. Names change but accessions
       // always refer to the same term.
-      $dbx_cvterm = new ChadoRecord('cvterm');
+      $dbx_cvterm = new \Drupal\tripal_chado\Services\ChadoRecord('cvterm');
       $dbx_cvterm->setValues(['dbxref_id' => $dbxref->getID()]);
       if ($dbx_cvterm->find()) {
         $do_cvterm_insert = FALSE;
@@ -1299,7 +1302,7 @@ class OBOImporter extends TripalImporter {
 
       // Before updating the term let's check to see if it already exists
       // and make corrections.
-      $cvterm = new ChadoRecord('cvterm');
+      $cvterm = new \Drupal\tripal_chado\Services\ChadoRecord('cvterm');
       $cvterm->setValue('cv_id', $cv->cv_id);
       $cvterm->setValue('name', $name);
       if ($cvterm->find()) {
@@ -1378,7 +1381,7 @@ class OBOImporter extends TripalImporter {
     ];
     $results = chado_query($sql, $args);
     while ($conflict_id = $results->fetchField()) {
-      $check_cvterm = new ChadoRecord('cvterm', $conflict_id);
+      $check_cvterm = new \Drupal\tripal_chado\Services\ChadoRecord('cvterm', $conflict_id);
 
       // If the dbxref of this matched term is the same as the current term
       // then it is the same term and there is no conflict.
@@ -1388,8 +1391,8 @@ class OBOImporter extends TripalImporter {
 
       // At this point, we have a cvterm with the same name and vocabulary
       // but with a different dbxref. First let's get that other accession.
-      $check_dbxref = new ChadoRecord('dbxref', $check_cvterm->getValue('dbxref_id'));
-      $check_db = new ChadoRecord('db', $check_dbxref->getValue('db_id'));
+      $check_dbxref = new \Drupal\tripal_chado\Services\ChadoRecord('dbxref', $check_cvterm->getValue('dbxref_id'));
+      $check_db = new \Drupal\tripal_chado\Services\ChadoRecord('db', $check_dbxref->getValue('db_id'));
       $check_accession = $check_db->getValue('name') . ':' . $check_dbxref->getValue('accession');
 
       // Case 1:  The other term that currently has the same name is
@@ -1678,7 +1681,7 @@ class OBOImporter extends TripalImporter {
     $obj_cvterm_id = $this->saveTerm($obj_stanza);
 
     // Add the cvterm_relationship.
-    $cvterm_relationship = new ChadoRecord('cvterm_relationship');
+    $cvterm_relationship = new \Drupal\tripal_chado\Services\ChadoRecord('cvterm_relationship');
     $cvterm_relationship->setValues([
       'type_id' => $rel_cvterm_id,
       'subject_id' => $cvterm_id,
@@ -1746,7 +1749,7 @@ class OBOImporter extends TripalImporter {
     $db = $this->all_dbs[$short_name];
 
     // Check if the dbxref exists.
-    $dbxref = new ChadoRecord('dbxref');
+    $dbxref = new \Drupal\tripal_chado\Services\ChadoRecord('dbxref');
     $dbxref->setValues([
       'db_id' => $db->db_id,
       'accession' => $accession,
@@ -1756,14 +1759,14 @@ class OBOImporter extends TripalImporter {
     }
 
     // If the dbxref exists then see if it has a corresponding cvterm.
-    $cvterm = new ChadoRecord('cvterm');
+    $cvterm = new \Drupal\tripal_chado\Services\ChadoRecord('cvterm');
     $cvterm->setValues(['dbxref_id' => $dbxref->getID()]);
     if (!$cvterm->find()) {
       return NULL;
     }
 
     // Get the CV for this term.
-    $cv = new ChadoRecord('cv');
+    $cv = new \Drupal\tripal_chado\Services\ChadoRecord('cv');
     $cv->setValues(['cv_id' => $cvterm->getValue('cv_id')]);
     $cv->find();
 
@@ -2017,7 +2020,7 @@ class OBOImporter extends TripalImporter {
     }
 
     // Now save the new synonym.
-    $cvtermsynonym = new ChadoRecord('cvtermsynonym');
+    $cvtermsynonym = new \Drupal\tripal_chado\Services\ChadoRecord('cvtermsynonym');
     $cvtermsynonym->setValues([
       'cvterm_id' => $cvterm_id,
       'synonym' => $def,
@@ -2272,7 +2275,7 @@ class OBOImporter extends TripalImporter {
    *   The name of the subset.
    */
   private function addSubset($id, $cvterm_id, $subset) {
-    $cvtermprop = new ChadoRecord('cvtermprop');
+    $cvtermprop = new \Drupal\tripal_chado\Services\ChadoRecord('cvtermprop');
     $cvtermprop->setValues([
       'cvterm_id' => $cvterm_id,
       'type_id' => $this->used_terms['NCIT:C25693'],
@@ -2307,7 +2310,7 @@ class OBOImporter extends TripalImporter {
     }
     else {
       // If it's not in the cache we can assume it doesn't exist and insert.
-      $db = new ChadoRecord('db');
+      $db = new \Drupal\tripal_chado\Services\ChadoRecord('db');
       $values = ['name' => $dbname];
       if ($url) {
         $values['url'] = $url;
@@ -2344,7 +2347,7 @@ class OBOImporter extends TripalImporter {
     }
     else {
       // If it's not in the cache we can assume it doesn't exist and insert.
-      $cv = new ChadoRecord('cv');
+      $cv = new \Drupal\tripal_chado\Services\ChadoRecord('cv');
       $cv->setValues(['name' => $cvname]);
       $cv->insert();
       $cv = (object) $cv->getValues();
@@ -2399,7 +2402,7 @@ class OBOImporter extends TripalImporter {
     $db_id = $db->db_id;
 
     // Now add the dbxref if it doesn't already exist
-    $dbxref = new ChadoRecord('dbxref');
+    $dbxref = new \Drupal\tripal_chado\Services\ChadoRecord('dbxref');
     $dbxref->setValues([
       'db_id' => $db_id,
       'accession' => $accession,
@@ -2450,7 +2453,7 @@ class OBOImporter extends TripalImporter {
     $db_id = $db->db_id;
 
     // Now add the dbxref if it doesn't already exist
-    $dbxref = new ChadoRecord('dbxref');
+    $dbxref = new \Drupal\tripal_chado\Services\ChadoRecord('dbxref');
     $dbxref->setValues([
       'db_id' => $db_id,
       'accession' => $accession,
@@ -2460,7 +2463,7 @@ class OBOImporter extends TripalImporter {
     }
 
     // Now add the cvterm_dbxref record.
-    $cvterm_dbxref = new ChadoRecord('cvterm_dbxref');
+    $cvterm_dbxref = new \Drupal\tripal_chado\Services\ChadoRecord('cvterm_dbxref');
     $cvterm_dbxref->setValues([
       'cvterm_id' => $cvterm_id,
       'dbxref_id' => $dbxref->getID(),
@@ -2488,7 +2491,7 @@ class OBOImporter extends TripalImporter {
     $comment_type_id = $this->used_terms['rdfs:comment'];
 
     // Add the comment as a property of the cvterm.
-    $cvtermprop = new ChadoRecord('cvtermprop');
+    $cvtermprop = new \Drupal\tripal_chado\Services\ChadoRecord('cvtermprop');
     $cvtermprop->setValues([
       'cvterm_id' => $cvterm_id,
       'type_id' => $comment_type_id,
