@@ -282,7 +282,7 @@ class OBOImporter extends TripalImporter {
       $uobo_url = '';
       $uobo_file = '';
 
-      $vocab = db_select('tripal_cv_obo', 't')
+      $vocab = db_select('chado.tripal_cv_obo', 't')
         ->fields('t', ['name', 'path'])
         ->condition('obo_id', $obo_id)
         ->execute()
@@ -400,7 +400,7 @@ class OBOImporter extends TripalImporter {
     // If the user requested to alter the details then do that.
     if ($form_values['clicked_button']['#name'] == 'update_obo_details') {
       $form_values['rebuild'] = TRUE;
-      $success = db_update('tripal_cv_obo')
+      $success = db_update('chado.tripal_cv_obo')
         ->fields([
           'name' => $uobo_name,
           'path' => $uobo_url ? $uobo_url : $uobo_file,
@@ -416,7 +416,7 @@ class OBOImporter extends TripalImporter {
 
     }
     elseif (!empty($obo_name)) {
-      $obo_id = db_insert('tripal_cv_obo')
+      $obo_id = db_insert('chado.tripal_cv_obo')
         ->fields([
           'name' => $obo_name,
           'path' => $obo_url ? $obo_url : $obo_file,
@@ -453,7 +453,7 @@ class OBOImporter extends TripalImporter {
     if ($form_state['clicked_button']['#name'] == 'update_obo_details' or
       $form_state['clicked_button']['#name'] == 'update_load_obo') {
       // Get the current record
-      $vocab = db_select('tripal_cv_obo', 't')
+      $vocab = db_select('chado.tripal_cv_obo', 't')
         ->fields('t', ['obo_id', 'name', 'path'])
         ->condition('name', $uobo_name)
         ->execute()
@@ -477,7 +477,7 @@ class OBOImporter extends TripalImporter {
     }
     if ($form_state['clicked_button']['#name'] == 'add_new_obo') {
       // Get the current record
-      $vocab = db_select('tripal_cv_obo', 't')
+      $vocab = db_select('chado.tripal_cv_obo', 't')
         ->fields('t', ['obo_id', 'name', 'path'])
         ->condition('name', $obo_name)
         ->execute()
@@ -514,7 +514,7 @@ class OBOImporter extends TripalImporter {
     $obo_id = $arguments['obo_id'];
 
     // Make sure the $obo_id is valid
-    $obo = db_select('tripal_cv_obo', 'tco')
+    $obo = db_select('chado.tripal_cv_obo', 'tco')
       ->fields('tco')
       ->condition('obo_id', $obo_id)
       ->execute()
