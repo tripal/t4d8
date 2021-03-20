@@ -103,10 +103,10 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     // Attempt to add the tripal_chado_add_tripal_gffcds_temp table into chado
     $this->tripal_chado_add_tripal_gffcds_temp_table();
     // Attempt to add the tripal_chado_add_tripal_cv_obo table into chado
-    $this->tripal_chado_add_tripal_cv_obo_table();
+    $this->tripal_add_tripal_cv_obo_table();
   }
 
-  public function tripal_chado_add_tripal_cv_obo_table() {
+  public function tripal_add_tripal_cv_obo_table() {
     $schema = [
       'table' => 'tripal_cv_obo',
       'fields' => [
@@ -129,7 +129,8 @@ class chadoInstaller extends bulkPgSchemaInstaller {
       ],
       'primary key' => ['obo_id'],
     ];
-    chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
+    \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
+    // chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
   }
 
   public function tripal_chado_add_tripal_gff_temp_table() {
