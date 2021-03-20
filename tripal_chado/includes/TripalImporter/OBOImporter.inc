@@ -1,4 +1,6 @@
 <?php
+use Drupal\Core\Form\FormInterface;
+use Drupal\Core\Form\FormStateInterface;
 
 class OBOImporter extends TripalImporter {
 
@@ -222,7 +224,7 @@ class OBOImporter extends TripalImporter {
   public function form($form, &$form_state) {
 
     // get a list of db from chado for user to choose
-    $sql = "SELECT * FROM {tripal_cv_obo} ORDER BY name";
+    $sql = "SELECT * FROM chado.tripal_cv_obo ORDER BY name";
     $results = db_query($sql);
 
     $obos = [];
@@ -436,7 +438,8 @@ class OBOImporter extends TripalImporter {
   /**
    * @see TripalImporter::formValidate()
    */
-  public function formValidate($form, &$form_state) {
+  // public function formValidate($form, &$form_state) {
+    public function validateForm(array &$form, FormStateInterface $form_state) {  
     $obo_id = $form_state['values']['obo_id'];
     $obo_name = trim($form_state['values']['obo_name']);
     $obo_url = trim($form_state['values']['obo_url']);
