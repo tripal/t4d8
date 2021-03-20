@@ -389,13 +389,13 @@ class OBOImporter extends TripalImporter {
    */
   public function formSubmit($form, &$form_state) {
     $form_values = $form_state->getValues();
-    $obo_id = $form_values['values']['obo_id'];
-    $obo_name = trim($form_values['values']['obo_name']);
-    $obo_url = trim($form_values['values']['obo_url']);
-    $obo_file = trim($form_values['values']['obo_file']);
-    $uobo_name = array_key_exists('uobo_name', $form_values['values']) ? trim($form_values['values']['uobo_name']) : '';
-    $uobo_url = array_key_exists('uobo_url', $form_values['values']) ? trim($form_values['values']['uobo_url']) : '';
-    $uobo_file = array_key_exists('uobo_file', $form_values['values']) ? trim($form_values['values']['uobo_file']) : '';
+    $obo_id = $form_values['obo_id'];
+    $obo_name = trim($form_values['obo_name']);
+    $obo_url = trim($form_values['obo_url']);
+    $obo_file = trim($form_values['obo_file']);
+    $uobo_name = array_key_exists('uobo_name', $form_values) ? trim($form_values['uobo_name']) : '';
+    $uobo_url = array_key_exists('uobo_url', $form_values) ? trim($form_values['uobo_url']) : '';
+    $uobo_file = array_key_exists('uobo_file', $form_values) ? trim($form_values['uobo_file']) : '';
 
     // If the user requested to alter the details then do that.
     if ($form_values['clicked_button']['#name'] == 'update_obo_details') {
@@ -424,7 +424,7 @@ class OBOImporter extends TripalImporter {
         ->execute();
 
       // Add the obo_id to the form_state values.
-      $form_values['values']['obo_id'] = $obo_id;
+      $form_values['obo_id'] = $obo_id;
 
       if ($obo_id) {
         drupal_set_message(t("The vocabulary !vocab has been added.", ['!vocab' => $obo_name]));
