@@ -241,6 +241,9 @@ class TripalImporter {
 
     // Initialize the logger.
     $this->logger = \Drupal::service('tripal.logger');  
+
+    // Initialize messenger
+    $this->messenger = \Drupal::messenger();
   }
 
   /**
