@@ -64,4 +64,61 @@ class TripalJobTest extends BrowserTestBase {
         $this->assertTrue($jobData["submit_date"] == $submitTime);
         $this->assertTrue($jobData["includes"] == "a:0:{}");
     }
+
+	/**
+	 */
+    public function testLoad() {
+        $time = time();
+        $database = \Drupal::database();
+        $id = $database->insert('tripal_jobs')->fields(
+            [
+                "job_name" => "Test Job",
+                "modulename" => "tripal",
+                "callback" => "\\Drupal\\Tests\\tripal\\Functional\\TripalJobTestCallback",
+                "status" => 'Waiting',
+                "submit_date" => $time,
+                "uid" => 66,
+                "priority" => 10,
+                "arguments" => serialize([]),
+                "includes" => serialize([]),
+            ]
+        )->execute();
+        $job = new TripalJob();
+        $job->load($id);
+        $this->assertTrue($job->getJobID() == $id);
+        $this->assertTrue($job->getSubmitTime() == $time);
+    }
+
+	/**
+	 */
+    public function testGetters() {
+        $job = new TripalJob();
+        $job->create(
+            array(
+                "job_name" => "Test Job"
+                ,"modulename" => "tripal"
+                ,"callback" => "\\Drupal\\Tests\\tripal\\Functional\\TripalJobTestCallback"
+                ,"arguments" => array()
+                ,"uid" => 66
+            )
+        );
+        $data = $job->getJob();
+        $this->assertTrue($job->getJobID() == $data->job_id);
+        $this->assertTrue($job->getUID() == $data->uid);
+        $this->assertTrue($job->getJobName() == $data->job_name);
+        $this->assertTrue($job->getModuleName() == $data->modulename);
+        $this->assertTrue($job->getCallback() == $data->callback);
+        $this->assertTrue($job->getArguments() == $data->arguments);
+        $this->assertTrue($job->getProgress() == $data->progress);
+        $this->assertTrue($job->getStatus() == $data->status);
+        $this->assertTrue($job->getSubmitTime() == $data->submit_date);
+        $this->assertTrue($job->getStartTime() == $data->start_time);
+        $this->assertTrue($job->getEndTime() == $data->end_time);
+        $this->assertTrue($job->getLog() == $data->error_msg);
+        $this->assertTrue($job->getPID() == $data->pid);
+        $this->assertTrue($job->getPriority() == $data->priority);
+        $this->assertTrue($job->getMLock() == $data->mlock);
+        $this->assertTrue($job->getLock() == $data->lock);
+        $this->assertTrue($job->getIncludes() == $data->includes);
+    }
 }
