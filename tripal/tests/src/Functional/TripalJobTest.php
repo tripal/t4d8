@@ -6,7 +6,20 @@ use Drupal\Tests\BrowserTestBase;
 
 use Drupal\tripal\Services\TripalJob;
 
-function TripalJobTestCallback() {
+use \Thread;
+
+class TripalJobTestRunThread extends Thread {
+    public function __construct($job) {
+        $this->job = $job;
+    }
+    public function run() {
+        $this->job->run();
+    }
+}
+
+function TripalJobTestCallback($test) {
+    $test->touched = TRUE;
+    sleep(4);
 }
 
 /**
@@ -14,6 +27,7 @@ function TripalJobTestCallback() {
 class TripalJobTest extends BrowserTestBase {
     protected $defaultTheme = 'stable';
     protected static $modules = ['tripal'];
+    public $touched = FALSE;
 
 	/**
 	 */
@@ -120,5 +134,25 @@ class TripalJobTest extends BrowserTestBase {
         $this->assertTrue($job->getMLock() == $data->mlock);
         $this->assertTrue($job->getLock() == $data->lock);
         $this->assertTrue($job->getIncludes() == $data->includes);
+    }
+
+	/**
+	 */
+    public function testSetProgress() {
+        $job = new TripalJob();
+        $job->create(
+            array(
+                "job_name" => "Test Job"
+                ,"modulename" => "tripal"
+                ,"callback" => "\\Drupal\\Tests\\tripal\\Functional\\TripalJobTestCallback"
+                ,"arguments" => array()
+                ,"uid" => 66
+            )
+        );
+        $job->setProgress(66);
+        $this->assertTrue($job->getProgress() == 66);
+        $job2 = new TripalJob();
+        $job2->load($job->getJobID());
+        $this->assertTrue($job2->getProgress() == 66);
     }
 }
