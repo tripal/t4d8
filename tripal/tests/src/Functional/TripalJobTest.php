@@ -3,23 +3,9 @@
 namespace Drupal\Tests\tripal\Functional;
 
 use Drupal\Tests\BrowserTestBase;
-
 use Drupal\tripal\Services\TripalJob;
 
-use \Thread;
-
-class TripalJobTestRunThread extends Thread {
-    public function __construct($job) {
-        $this->job = $job;
-    }
-    public function run() {
-        $this->job->run();
-    }
-}
-
-function TripalJobTestCallback($test) {
-    $test->touched = TRUE;
-    sleep(4);
+function TripalJobTestCallback() {
 }
 
 /**
@@ -154,5 +140,24 @@ class TripalJobTest extends BrowserTestBase {
         $job2 = new TripalJob();
         $job2->load($job->getJobID());
         $this->assertTrue($job2->getProgress() == 66);
+    }
+
+	/**
+	 */
+    public function testRun() {
+        $job = new TripalJob();
+        $job->create(
+            array(
+                "job_name" => "Test Job"
+                ,"modulename" => "tripal"
+                ,"callback" => "\\Drupal\\Tests\\tripal\\Functional\\TripalJobTestCallback"
+                ,"arguments" => array()
+                ,"uid" => 66
+            )
+        );
+        $job->run();
+        $this->assertTrue($job->getProgress() == 100);
+        $this->assertTrue($job->getStatus() == "Completed");
+        $this->assertTrue($job->getPID() == NULL);
     }
 }
