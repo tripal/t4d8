@@ -531,11 +531,11 @@ class TripalJob {
     // First set the number of items handled.
     $this->num_handled = $total_handled;
 
-    if ($total_handled == 0) {
-      $memory = number_format(memory_get_usage());
-      print "Percent complete: 0%. Memory: " . $memory . " bytes.\r";
-      return;
-    }
+    //if ($total_handled == 0) {
+    //  $memory = number_format(memory_get_usage());
+    //  print "Percent complete: 0%. Memory: " . $memory . " bytes.\r";
+    //  return;
+    //}
 
     // Now see if we need to report to the user the percent done.  A message
     // will be printed on the command-line if the job is run there.
@@ -544,12 +544,12 @@ class TripalJob {
 
     // If we've reached our interval then print update info.
     if ($ipercent > 0 and $ipercent != $this->reported and ($ipercent % $this->interval) == 0) {
-      $duration = (time() - $this->progress_start_time) / 60;
-      $duration = sprintf("%.2f", $duration);
-      $memory = memory_get_usage();
-      $fmemory = number_format($memory);
+      //$duration = (time() - $this->progress_start_time) / 60;
+      //$duration = sprintf("%.2f", $duration);
+      //$memory = memory_get_usage();
+      //$fmemory = number_format($memory);
       $spercent = sprintf("%d", $percent);
-      print "Percent complete: " . $spercent . "%. Memory: " . $fmemory . " bytes. Duration: " . $duration . " mins\r";
+      //print "Percent complete: " . $spercent . "%. Memory: " . $fmemory . " bytes. Duration: " . $duration . " mins\r";
       $this->setProgress($percent);
       $this->reported = $ipercent;
     }

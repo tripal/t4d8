@@ -160,4 +160,27 @@ class TripalJobTest extends BrowserTestBase {
         $this->assertTrue($job->getStatus() == "Completed");
         $this->assertTrue($job->getPID() == NULL);
     }
+
+	/**
+	 */
+    public function testItemsHandled() {
+        $job = new TripalJob();
+        $job->create(
+            array(
+                "job_name" => "Test Job"
+                ,"modulename" => "tripal"
+                ,"callback" => "\\Drupal\\Tests\\tripal\\Functional\\TripalJobTestCallback"
+                ,"arguments" => array()
+                ,"uid" => 66
+            )
+        );
+        $job->setTotalItems(1000);
+        $job->setInterval(5);
+        $job->setItemsHandled(5);
+        $this->assertTrue($job->getProgress() == 0);
+        $job->addItemsHandled(50);
+        $this->assertTrue($job->getProgress() == 5.5);
+        $job->setItemsHandled(100);
+        $this->assertTrue($job->getProgress() == 10);
+    }
 }
