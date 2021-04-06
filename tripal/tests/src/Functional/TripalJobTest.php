@@ -9,15 +9,21 @@ function TripalJobTestCallback() {
 }
 
 /**
+ * Tests the tripal job service.
+ *
+ * @group Tripal
  */
 class TripalJobTest extends BrowserTestBase {
     protected $defaultTheme = 'stable';
     protected static $modules = ['tripal'];
     public $touched = FALSE;
 
-	/**
-	 */
-	public function testCreate() {
+    /**
+     * Tests the creation of a new tripal job.
+     *
+     * @group Tripal
+     */
+    public function testCreate() {
         $job = new TripalJob();
         $job->create(
             array(
@@ -66,6 +72,9 @@ class TripalJobTest extends BrowserTestBase {
     }
 
 	/**
+     * Tests the loading of a tripal job.
+     *
+     * @group Tripal
 	 */
     public function testLoad() {
         $time = time();
@@ -90,6 +99,9 @@ class TripalJobTest extends BrowserTestBase {
     }
 
 	/**
+     * Tests the getter methods of a tripal job.
+     *
+     * @group Tripal
 	 */
     public function testGetters() {
         $job = new TripalJob();
@@ -123,6 +135,9 @@ class TripalJobTest extends BrowserTestBase {
     }
 
 	/**
+     * Tests setting the progress of a tripal job.
+     *
+     * @group Tripal
 	 */
     public function testSetProgress() {
         $job = new TripalJob();
@@ -143,6 +158,9 @@ class TripalJobTest extends BrowserTestBase {
     }
 
 	/**
+     * Tests running a tripal job.
+     *
+     * @group Tripal
 	 */
     public function testRun() {
         $job = new TripalJob();
@@ -162,6 +180,9 @@ class TripalJobTest extends BrowserTestBase {
     }
 
 	/**
+     * Tests the items handled methods of a tripal job.
+     *
+     * @group Tripal
 	 */
     public function testItemsHandled() {
         $job = new TripalJob();
