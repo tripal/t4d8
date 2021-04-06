@@ -278,7 +278,7 @@ class OBOImporter extends TripalImporter {
       '#type' => 'select',
       '#options' => $obos,
       '#ajax' => [
-        'callback' => '::tripal_cv_obo_form_ajax_callback',
+        'callback' => 'OBOImporter::tripal_cv_obo_form_ajax_callback',
         'wrapper' => 'obo-existing-fieldset',
       ],
       '#description' => t('Select a vocabulary to import.'),
@@ -2577,7 +2577,9 @@ class OBOImporter extends TripalImporter {
   /**
    * Ajax callback for the OBOImporter::form() function.
    */
-  function tripal_cv_obo_form_ajax_callback($form, $form_state) {
+  static function tripal_cv_obo_form_ajax_callback($form, $form_state) {
+    $logger = \Drupal::service('tripal.logger');
+    $logger->info('$form[obo_existing]:' . var_export($form, true));
     return $form['obo_existing'];
 
     /*

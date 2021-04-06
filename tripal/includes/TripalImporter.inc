@@ -721,7 +721,7 @@ class TripalImporter implements FormInterface {
    * which is a new addition to the TripalImporter for Drupal 8/9
    */
   public function getFormId() {
-    return 'tripalimporter_baseform';
+    return 'tripal_admin_form_tripalimporter';
   }
 
   /**

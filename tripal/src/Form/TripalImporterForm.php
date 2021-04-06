@@ -135,7 +135,12 @@ class TripalImporterForm implements FormInterface {
       // for this loader.
       $importer = new $class();
       $element = [];
+      // D7 version called the form() function from the importer class
+      // $element_form = $importer->form($element, $form_state);
+
+      // Attempting a D9 version
       $element_form = $importer->form($element, $form_state);
+
       // Quick check to make sure we had an array returned so array_merge() works.
       if (!is_array($element_form)) {
         $element_form = array();
@@ -266,7 +271,7 @@ class TripalImporterForm implements FormInterface {
     // Convert the validation code into the D8/9 equivalent
     $form_values = $form_state->getValues();
     $class = $form_values['importer_class'];
-    var_dump($class);
+    // var_dump($class);
     tripal_load_include_importer_class($class);
 
     $file_local = NULL;
