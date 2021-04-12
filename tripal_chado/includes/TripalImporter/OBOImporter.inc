@@ -318,9 +318,11 @@ class OBOImporter extends TripalImporter {
       }
       // We don't want the previous value to remain. We want the new default to
       // show up, so remove the input values
-      //unset($form_state['input']['uobo_name']);
-      //unset($form_state['input']['uobo_url']);
-      //unset($form_state['input']['uobo_file']);
+      $form_user_input = $form_state->getUserInput();
+      unset($form_user_input['uobo_name']);
+      unset($form_user_input['uobo_url']);
+      unset($form_user_input['uobo_file']);
+      $form_state->setUserInput($form_user_input);
 
       $form['obo_existing']['uobo_name'] = [
         '#type' => 'textfield',
@@ -350,11 +352,22 @@ class OBOImporter extends TripalImporter {
           must be accessible to the web server on which this Drupal instance is running.'),
         '#default_value' => $uobo_file,
       ];
+
       $form['obo_existing']['update_obo_details'] = [
-        '#type' => 'submit',
+        // '#type' => 'submit',
+        '#type' => 'button',
         '#value' => 'Update Ontology Details',
         '#name' => 'update_obo_details',
+        '#ajax' => [
+          'callback' => 'OBOImporter::tripal_cv_obo_form_ajax_update_callback',
+          'wrapper' => 'obo-existing-fieldset',
+        ],        
       ];
+
+      $form['obo_existing']['update_obo_details_results'] = [
+        '#type' => 'item',
+        '#markup' => '<span id="update_obo_details_results"></span>'
+      ];      
     }
 
     $form['obo_new'] = [
@@ -2588,38 +2601,72 @@ class OBOImporter extends TripalImporter {
    * Ajax callback for the OBOImporter::form() function.
    */
   static function tripal_cv_obo_form_ajax_callback($form, $form_state) {
-    $logger = \Drupal::service('tripal.logger');
-    $logger->info('$form[obo_existing]:' . var_export($form, true));
+    // $logger = \Drupal::service('tripal.logger');
+    // $logger->info('$form[obo_existing]:' . var_export($form, true));
     return $form['obo_existing'];
+  } 
+  
+  /**
+   * Ajax callback for the OBOImporter::form() function.
+   */
+  static function tripal_cv_obo_form_ajax_update_callback($form, $form_state) {
+    $logger = \Drupal::service('tripal.logger');
 
-    /*
-    $form['test_field'] = [
-      '#type' => 'textfield',
-      '#title' => t('Test Field'),
-      '#description' => t('Test field desc'),
-      '#default_value' => 'test field after ajax',
-    ];      
-    return $form['test_field'];
-    */
-  }  
+    $form_values = $form_state->getValues();
+    $obo_id = $form_values['obo_id'];
+    $obo_name = trim($form_values['obo_name']);
+    $obo_url = trim($form_values['obo_url']);
+    $obo_file = trim($form_values['obo_file']);
+    $uobo_name = array_key_exists('uobo_name', $form_values) ? trim($form_values['uobo_name']) : '';
+    $uobo_url = array_key_exists('uobo_url', $form_values) ? trim($form_values['uobo_url']) : '';
+    $uobo_file = array_key_exists('uobo_file', $form_values) ? trim($form_values['uobo_file']) : '';
+    $success = db_update('tripal_cv_obo')
+    ->fields([
+      'name' => $uobo_name,
+      'path' => $uobo_url ? $uobo_url : $uobo_file,
+    ])
+    ->condition('obo_id', $obo_id)
+    ->execute();
+    if ($success) {
+      $form['obo_existing']['update_obo_details_results'] = [
+        '#type' => 'item',
+        '#markup' => '<span style="color: green" id="update_obo_details_results">Updated successfully!</span>'
+      ]; 
+      
+      // Refresh the OBO select list
+      // get a list of db from chado for user to choose
+      $sql = "SELECT * FROM tripal_cv_obo ORDER BY name";
+      $results = db_query($sql);
+
+      $obos = [];
+      $obos[] = 'Select a Vocabulary';
+      foreach ($results as $obo) {
+        $obos[$obo->obo_id] = $obo->name;
+      }
+
+      $form['obo_existing']['obo_id']['#options'] = $obos;
+
+      // Make sure the obo_existing fields stay the same
+      $form['obo_existing']['uobo_name']['#value'] = $form_values['uobo_name'];
+      $form['obo_existing']['uobo_url']['#value'] = $form_values['uobo_url'];
+      $form['obo_existing']['uobo_file']['#value'] = $form_values['uobo_file'];
+
+      // drupal_set_message(t("The vocabulary !vocab has been updated.", ['!vocab' => $uobo_name]));
+      // $logger->info("The vocabulary $uobo_name has been updated.");
+    }
+    else {
+      $form['obo_existing']['update_obo_details_results'] = [
+        '#type' => 'item',
+        '#markup' => '<span style="color: red" id="update_obo_details_results">Updated was unsuccessful!</span>'
+      ];       
+      // $logger->info("The vocabulary $uobo_name could not be updated.");
+    }
+
+    return $form['obo_existing'];;
+  }   
 
 }
 
-/**
- * Ajax callback for the OBOImporter::form() function.
- */
-/*
-function tripal_cv_obo_form_ajax_callback($form, $form_state) {
-  // return $form['obo_existing'];
 
-  $form['test_field'] = [
-    '#type' => 'textfield',
-    '#title' => t('Test Field'),
-    '#description' => t('Test field desc'),
-    '#default_value' => 'test field after ajax',
-  ];      
-  return $form['test_field'];
-}
-*/
 
 
