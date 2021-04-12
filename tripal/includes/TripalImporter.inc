@@ -4,7 +4,7 @@
 
 use \Drupal\Core\Form\FormInterface;
 use \Drupal\Core\Form\FormStateInterface;
-class TripalImporter implements FormInterface {
+class TripalImporter {
 
   // --------------------------------------------------------------------------
   //                     EDITABLE STATIC CONSTANTS
@@ -710,59 +710,6 @@ class TripalImporter implements FormInterface {
   //                     OVERRIDEABLE FUNCTIONS
   // --------------------------------------------------------------------------
 
-
-  // These are the new Drupal 8 / 9 functions required for this class to 
-  // remain compatible with new versions of Drupal.
-
-  /**
-   * Returns the form ID
-   * 
-   * This is required to satisfy the implements FormInterface 
-   * which is a new addition to the TripalImporter for Drupal 8/9
-   */
-  public function getFormId() {
-    return 'tripal_admin_form_tripalimporter';
-  }
-
-  /**
-   * Returns the form
-   * 
-   * This is required to satisfy the implements FormInterface 
-   * which is a new addition to the TripalImporter for Drupal 8/9
-   */
-
-  public function buildForm(array $form, FormStateInterface $form_state) {
-    return $form;
-  }  
-
-  /**
-   * Returns the form
-   * 
-   * This is NOT required to satisfy the implements FormInterface 
-   * but might become useful in the future
-   */
-
-  public function validateForm(array &$form, FormStateInterface $form_state) {
-    /*
-    if (strlen($form_state->getValue('phone_number')) < 3) {
-      $form_state->setErrorByName('phone_number', $this->t('The phone number is too short. Please enter a full phone number.'));
-    }
-    */
-  }
-
-   /**
-   * Submit form 
-   * 
-   * This is required to satisfy the implements FormInterface 
-   * which is a new addition to the TripalImporter for Drupal 8/9
-   */ 
-  public function submitForm(array &$form, FormStateInterface $form_state) {
-    // $this->messenger()->addStatus($this->t('Your phone number is @number', 
-    // ['@number' => $form_state->getValue('phone_number')]));
-  }
-
-  // These are the old Drupal 7 functions kept temporarily to remain backwards
-  // compatible until upgrades are completed.
   /**
    * Provides form elements to be added to the loader form.
    *

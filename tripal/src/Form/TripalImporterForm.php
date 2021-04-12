@@ -28,6 +28,9 @@ class TripalImporterForm implements FormInterface {
 
     // Let us do a basic check to make sure CHADO is installed since we need it
     // for even the most basic form generation - particularly for analysis
+
+    // REMOVE THIS / CHECK CODE TO MAKE SURE THE CODE MAKES SENSE COMPARED
+    // TO THE OLD CODE DRUPAL 7 tripal.importer.inc
     $sql = "SELECT * FROM {analysis} ORDER BY name";
     $hasChado = true;
     try {
@@ -135,10 +138,7 @@ class TripalImporterForm implements FormInterface {
       // for this loader.
       $importer = new $class();
       $element = [];
-      // D7 version called the form() function from the importer class
-      // $element_form = $importer->form($element, $form_state);
-
-      // Attempting a D9 version
+      
       $element_form = $importer->form($element, $form_state);
 
       // Quick check to make sure we had an array returned so array_merge() works.
@@ -271,7 +271,6 @@ class TripalImporterForm implements FormInterface {
     // Convert the validation code into the D8/9 equivalent
     $form_values = $form_state->getValues();
     $class = $form_values['importer_class'];
-    // var_dump($class);
     tripal_load_include_importer_class($class);
 
     $file_local = NULL;

@@ -242,10 +242,13 @@ class OBOImporter extends TripalImporter {
       $obos[$obo->obo_id] = $obo->name;
     }
 
+    $form_values = $form_state->getValues();
     $obo_id = '';
-    if (array_key_exists('values', $form_state)) {
-      $obo_id = array_key_exists('obo_id', $form_state['values']) ? $form_state['values']['obo_id'] : '';
-    }
+    
+    $logger = \Drupal::service('tripal.logger');
+
+    $obo_id = array_key_exists('obo_id', $form_values) ? $form_values['obo_id'] : '';
+
 
 
     $form['instructions']['info'] = [
@@ -257,6 +260,7 @@ class OBOImporter extends TripalImporter {
         loaded (as when new updates to that vocabulary are available) or load a new
         vocabulary.'),
     ];
+
 
     $form['obo_existing'] = [
       '#type' => 'fieldset',
@@ -289,6 +293,9 @@ class OBOImporter extends TripalImporter {
     // If the user has selected an OBO ID then get the form elements for
     // updating.
     if ($obo_id) {
+
+      $logger->info('OBO_ID seems to exist:' . $obo_id);
+
       $uobo_name = '';
       $uobo_url = '';
       $uobo_file = '';

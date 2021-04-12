@@ -42,13 +42,11 @@ class TripalRoutes {
           $file_path = drupal_get_path('module', $callback_module);
         }
 
-        dpm($menu_path);
         $routes[$menu_path] = new Route(
           // Path to attach this route to:
           $menu_path,
           // Route defaults:
           [
-            //'_controller' => '\Drupal\tripal\Controller\TripalController::'. $callback,
             '_form' => '\Drupal\tripal\Form\TripalImporterForm',
             '_title' => $class_name::$name
           ],
@@ -58,16 +56,6 @@ class TripalRoutes {
             '_permission' => 'administer tripal'
           ]
         );
-    //         // $items[$menu_path] = array(
-    //         //   'title' => $class_name::$name,
-    //         //   'description' =>  $class_name::$description,
-    //         //   'page callback' => $callback,
-    //         //   'page arguments' => $page_args,
-    //         //   'access arguments' => array('use ' . $machine_name . ' importer'),
-    //         //   'type' => MENU_NORMAL_ITEM,
-    //         //   'file' => $callback_path,
-    //         //   'file path' => $file_path,
-    //         // );
       }
     }
     return $routes;
