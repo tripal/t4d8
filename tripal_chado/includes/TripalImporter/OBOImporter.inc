@@ -244,8 +244,6 @@ class OBOImporter extends TripalImporter {
 
     $form_values = $form_state->getValues();
     $obo_id = '';
-    
-    $logger = \Drupal::service('tripal.logger');
 
     $obo_id = array_key_exists('obo_id', $form_values) ? $form_values['obo_id'] : '';
 
@@ -294,7 +292,7 @@ class OBOImporter extends TripalImporter {
     // updating.
     if ($obo_id) {
 
-      $logger->info('OBO_ID seems to exist:' . $obo_id);
+      // $this->logger->info('OBO Importer Form - OBO_ID seems to exist:' . $obo_id);
 
       $uobo_name = '';
       $uobo_url = '';
@@ -415,8 +413,11 @@ class OBOImporter extends TripalImporter {
     $uobo_url = array_key_exists('uobo_url', $form_values) ? trim($form_values['uobo_url']) : '';
     $uobo_file = array_key_exists('uobo_file', $form_values) ? trim($form_values['uobo_file']) : '';
 
+    // $this->logger->info('formSubmit form_values:' . var_export($form_state->getValues(), true));
+    // $this->logger->info('formSubmit userInput:' . var_export($form_state->getUserInput(), true));
+    $this->logger->info('formSubmit button:' . var_export($form_state->getTriggeringElement(), true));
     // If the user requested to alter the details then do that.
-    if ($form_values['clicked_button']['#name'] == 'update_obo_details') {
+    if ($form_state->getTriggeringElement()['#name'] == 'update_obo_details') {
       $form_values['rebuild'] = TRUE;
       $success = db_update('tripal_cv_obo')
         ->fields([
@@ -461,15 +462,17 @@ class OBOImporter extends TripalImporter {
    * @see TripalImporter::formValidate()
    */
   // public function formValidate($form, &$form_state) {
-  public function validateForm(array &$form, FormStateInterface $form_state) {  
-    $obo_id = $form_state['values']['obo_id'];
-    $obo_name = trim($form_state['values']['obo_name']);
-    $obo_url = trim($form_state['values']['obo_url']);
-    $obo_file = trim($form_state['values']['obo_file']);
-    $uobo_name = array_key_exists('uobo_name', $form_state['values']) ? trim($form_state['values']['uobo_name']) : '';
-    $uobo_url = array_key_exists('uobo_url', $form_state['values']) ? trim($form_state['values']['uobo_url']) : '';
-    $uobo_file = array_key_exists('uobo_file', $form_state['values']) ? trim($form_state['values']['uobo_file']) : '';
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    $form_values = $form_state->getValues(); 
+    $obo_id = $form_values['obo_id'];
+    $obo_name = trim($form_values['obo_name']);
+    $obo_url = trim($form_values['obo_url']);
+    $obo_file = trim($form_values['obo_file']);
+    $uobo_name = array_key_exists('uobo_name', $form_values) ? trim($form_values['uobo_name']) : '';
+    $uobo_url = array_key_exists('uobo_url', $form_values) ? trim($form_values['uobo_url']) : '';
+    $uobo_file = array_key_exists('uobo_file', $form_values) ? trim($form_values['uobo_file']) : '';
 
+    $this->logger->info('validateForm form_state:' . var_export($form_state, true));
     // Make sure if the name is changed it doesn't conflict with another OBO.
     if ($form_state['clicked_button']['#name'] == 'update_obo_details' or
       $form_state['clicked_button']['#name'] == 'update_load_obo') {
