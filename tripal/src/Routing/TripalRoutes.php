@@ -53,7 +53,7 @@ class TripalRoutes {
           // Route requirements:
           [
             //'_permission'  => array('use ' . $machine_name . ' importer'),
-            '_permission' => 'administer tripal'
+            '_permission' => 'allow tripal importer ' . $machine_name,
           ]
         );
       }
