@@ -101,7 +101,7 @@ view unpublished tripal content entities:
   title: 'View unpublished Tripal Content'
 
 allow tripal import:
-  title: 'Allow Tripal Imports'
+  title: 'Allow access to Tripal Importer Admin Listing'
   description: 'Allow access to execute importer'
   restrict access: true
 

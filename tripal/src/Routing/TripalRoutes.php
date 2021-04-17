@@ -22,6 +22,7 @@ class TripalRoutes {
       tripal_load_include_importer_class($class_name);
       if (class_exists($class_name)) {
         $machine_name = $class_name::$machine_name;
+        $name = $class_name::$name;
         $menu_path = 'admin/tripal/loaders/' . $machine_name;
         $callback = $class_name::$callback;
         $callback_path = $class_name::$callback_path;
@@ -52,7 +53,6 @@ class TripalRoutes {
           ],
           // Route requirements:
           [
-            //'_permission'  => array('use ' . $machine_name . ' importer'),
             '_permission' => 'allow tripal importer ' . $machine_name,
           ]
         );
