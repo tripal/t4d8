@@ -69,11 +69,11 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $success = $this->applySQL($init_file, $chado_schema);
     if ($success) {
       // @upgrade tripal_report_error().
-      $this->logger->info("Install of Chado v1.3 (Step 2 of 2) Successful.\nInstallation Complete\n");
+      $this->logger->info("Install of Chado v1.3 (Step 2 of 3) Successful.\nInstallation Complete\n");
     }
     else {
       // @upgrade tripal_report_error().
-      $this->logger->info("Installation (Step 2 of 2) Problems!  Please check output for errors.");
+      $this->logger->info("Installation (Step 2 of 3) Problems!  Please check output for errors.");
     }
 
     // 5) Finally set the version and tell Tripal.
@@ -104,6 +104,128 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $this->tripal_chado_add_tripal_gffcds_temp_table();
     // Attempt to add the tripal_chado_add_tripal_cv_obo table into chado
     $this->tripal_add_tripal_cv_obo_table();
+    // Attempt to add prerequisite ontology data (seems to be needed by the OBO
+    // importers) for example
+    $this->tripal_chado_load_ontologies();
+    $this->logger->info("Install of Chado v1.3 (Step 3 of 3) Successful.\nInstallation Complete\n");
+  }
+
+
+  /**
+   *
+   */
+  function tripal_chado_load_ontologies() {
+
+    // Before we can load ontologies we need a few terms that unfortunately
+    // don't get added until later. We'll add them now so the loader works.
+    chado_insert_db([
+      'name' => 'NCIT',
+      'description' => 'NCI Thesaurus OBO Edition.',
+      'url' => 'http://purl.obolibrary.org/obo/ncit.owl',
+      'urlprefix' => ' http://purl.obolibrary.org/obo/{db}_{accession}',
+    ]);
+    chado_insert_cv(
+      'ncit',
+      'The NCIt OBO Edition project aims to increase integration of the NCIt with OBO Library ontologies. NCIt is a reference terminology that includes broad coverage of the cancer domain, including cancer related diseases, findings and abnormalities. NCIt OBO Edition releases should be considered experimental.'
+    );
+
+    $term = chado_insert_cvterm([
+      'id' => 'NCIT:C25693',
+      'name' => 'Subgroup',
+      'cv_name' => 'ncit',
+      'definition' => 'A subdivision of a larger group with members often exhibiting similar characteristics. [ NCI ]',
+    ]);
+
+
+    // Add the rdfs:comment vocabulary.
+    chado_insert_db([
+      'name' => 'rdfs',
+      'description' => 'Resource Description Framework Schema',
+      'url' => 'https://www.w3.org/TR/rdf-schema/',
+      'urlprefix' => 'http://www.w3.org/2000/01/rdf-schema#{accession}',
+    ]);
+    chado_insert_cv(
+      'rdfs',
+      'Resource Description Framework Schema'
+    );
+    $name = chado_insert_cvterm([
+      'id' => 'rdfs:comment',
+      'name' => 'comment',
+      'cv_name' => 'rdfs',
+      'definition' => 'A human-readable description of a resource\'s name.',
+    ]);
+
+    // Insert commonly used ontologies into the tables.
+    $ontologies = [
+      [
+        'name' => 'Relationship Ontology (legacy)',
+        'path' => '{tripal_chado}/files/legacy_ro.obo',
+        'auto_load' => FALSE,
+        'cv_name' => 'ro',
+        'db_name' => 'RO',
+      ],
+      [
+        'name' => 'Gene Ontology',
+        'path' => 'http://purl.obolibrary.org/obo/go.obo',
+        'auto_load' => FALSE,
+        'cv_name' => 'cellualar_component',
+        'db_name' => 'GO',
+      ],
+      [
+        'name' => 'Taxonomic Rank',
+        'path' => 'http://purl.obolibrary.org/obo/taxrank.obo',
+        'auto_load' => TRUE,
+        'cv_name' => 'taxonomic_rank',
+        'db_name' => 'TAXRANK',
+      ],
+      [
+        'name' => 'Tripal Contact',
+        'path' => '{tripal_chado}/files/tcontact.obo',
+        'auto_load' => TRUE,
+        'cv_name' => 'tripal_contact',
+        'db_name' => 'TContact',
+      ],
+      [
+        'name' => 'Tripal Publication',
+        'path' => '{tripal_chado}/files/tpub.obo',
+        'auto_load' => TRUE,
+        'cv_name' => 'tripal_pub',
+        'db_name' => 'TPUB',
+      ],
+      [
+        'name' => 'Sequence Ontology',
+        'path' => 'http://purl.obolibrary.org/obo/so.obo',
+        'auto_load' => TRUE,
+        'cv_name' => 'sequence',
+        'db_name' => 'SO',
+      ],
+
+    ];
+
+    for ($i = 0; $i < count($ontologies); $i++) {
+      $obo_id = chado_insert_obo($ontologies[$i]['name'], $ontologies[$i]['path']);
+    }    
+    /*
+    module_load_include('inc', 'tripal_chado', 'includes/TripalImporter/OBOImporter');
+    for ($i = 0; $i < count($ontologies); $i++) {
+      $obo_id = chado_insert_obo($ontologies[$i]['name'], $ontologies[$i]['path']);
+      if ($ontologies[$i]['auto_load'] == TRUE) {
+        // Only load ontologies that are not already in the cv table.
+        $cv = chado_get_cv(['name' => $ontologies[$i]['cv_name']]);
+        $db = chado_get_db(['name' => $ontologies[$i]['db_name']]);
+        if (!$cv or !$db) {
+          print "Loading ontology: " . $ontologies[$i]['name'] . " ($obo_id)...\n";
+          $obo_importer = new OBOImporter();
+          $obo_importer->create(['obo_id' => $obo_id]);
+          $obo_importer->run();
+          $obo_importer->postRun();
+        }
+        else {
+          print "Ontology already loaded (skipping): " . $ontologies[$i]['name'] . "...\n";
+        }
+      }
+    }
+    */
   }
 
   public function tripal_add_tripal_cv_obo_table() {
@@ -129,7 +251,12 @@ class chadoInstaller extends bulkPgSchemaInstaller {
       ],
       'primary key' => ['obo_id'],
     ];
-    \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
+    try {
+      \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
+    }
+    catch (\Exception $ex) {
+
+    }
     // chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
   }
 

@@ -1013,3 +1013,71 @@ function chado_associate_cvterm($basetable, $record_id, $cvterm, $options = [], 
   print "last:" . print_r($values, TRUE);
   return FALSE;
 }
+
+
+/**
+ * Add the OBO to the tripal_cv_obo table in the Drupal database.
+ *
+ * If the OBO name already exists in the table then the path is updated.
+ *
+ * @param $name
+ *   The human readable name of this ontology.
+ * @param $path
+ *   The file path or URL of the ontology.
+ *
+ * @return
+ *   Returns the ontology ID.
+ *
+ * @ingroup tripal_chado_cv_api
+ */
+function chado_insert_obo($name, $path) {
+  // Make sure an OBO with the same name doesn't already exist.
+  $obo_id = db_select('tripal_cv_obo', 'tco')
+    ->fields('tco', ['obo_id'])
+    ->condition('name', $name)
+    ->execute()
+    ->fetchField();
+
+  if ($obo_id) {
+    db_update('tripal_cv_obo')
+      ->fields([
+        'path' => $path,
+      ])
+      ->condition('name', $name)
+      ->execute();
+    return $obo_id;
+  }
+  else {
+    $obo_id = db_insert('tripal_cv_obo')
+      ->fields([
+        'name' => $name,
+        'path' => $path,
+      ])
+      ->execute();
+    return $obo_id;
+  }
+}
+
+/**
+ * Retrieves an OBO record.
+ *
+ * @param $values
+ *   An associate array with the following allowed keys: obo_id, name.
+ *
+ * @return
+ *   An instance of an OBO record object.
+ *
+ * @ingroup tripal_chado_cv_api
+ */
+function chado_get_obo($values) {
+  $query = db_select('tripal_cv_obo', 'tco')
+    ->fields('tco');
+
+  if (array_key_exists('name', $values)) {
+    $query->condition('tco.name', $values['name']);
+  }
+  if (array_key_exists('obo_id', $values)) {
+    $query->condition('tco.obo_id', $values['obo_id']);
+  }
+  return $query->execute()->fetchObject();
+}

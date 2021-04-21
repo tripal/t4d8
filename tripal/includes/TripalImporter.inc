@@ -398,8 +398,8 @@ class TripalImporter {
       $values['arguments'] = base64_encode(serialize($arguments));
 
       // Temporary debug code
-      $logger = \Drupal::service('tripal.logger');
-      $logger->notice(
+      // $logger = \Drupal::service('tripal.logger');
+      $this->logger->notice(
         "arguments:\n" . print_r($arguments, true) . "\n\n"
       );
 
