@@ -612,7 +612,8 @@ class TripalImporter {
 
     // If we have a job then pass along the messaging to the job.
     if ($this->job) {
-      $this->job->logMessage($message, $variables, $severity);
+      // $this->job->logMessage($message, $variables, $severity);
+      $this->job->log($message);
     }
     // If we don't have a job then just use the drpual_set_message.
     else {
@@ -667,7 +668,7 @@ class TripalImporter {
 
     if ($total_handled == 0) {
       $memory = number_format(memory_get_usage());
-      print t("Percent complete: 0%. Memory: !memory  bytes.", ['!memory' => $memory]) . "\r";
+      print t("Percent complete: 0%. Memory: " . $memory . " bytes.") . "\r";
       return;
     }
 
@@ -680,8 +681,12 @@ class TripalImporter {
     if ($ipercent > 0 and $ipercent != $this->reported and $ipercent % $this->interval == 0) {
       $memory = number_format(memory_get_usage());
       $spercent = sprintf("%.2f", $percent);
+      /*
       print t("Percent complete: !percent %. Memory: !memory bytes.",
           ['!percent' => $spercent, '!memory' => $memory]) . "\r";
+      */
+      print t("Percent complete: " . $spercent . 
+        " %. Memory: " . $memory . " bytes.") . "\r";      
 
       // If we have a job the update the job progress too.
       if ($this->job) {

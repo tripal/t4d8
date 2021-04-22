@@ -586,17 +586,21 @@ class OBOImporter extends TripalImporter {
     $this->used_terms['rdfs:comment'] = $term->cvterm_id;
 
     // Make sure we have a 'synonym_type' vocabulary.
+    $this->logger->info('OBO Importer run function - access ChadoRecord');
     $syn_cv = new \Drupal\tripal_chado\Services\ChadoRecord('cv');
     $syn_cv->setValues(['name' => 'synonym_type']);
+    $this->logger->info('OBO Importer run function - setValues()');
     $syn_cv->save();
+    $this->logger->info('OBO Importer run function - save()');
     $this->all_cvs['synonym_type'] = (object) $syn_cv->getValues();
-    $this->logger->info('OBO Importer run function - all_cvs:' . print_r($this->all_cvs, true));
+
+    
     // Make sure we have a 'synonym_type' database.
     $syn_db = new \Drupal\tripal_chado\Services\ChadoRecord('db');
     $syn_db->setValues(['name' => 'synonym_type']);
     $syn_db->save();
     $this->all_dbs['synonym_type'] = (object) $syn_db->getValues();
-    $this->logger->info('OBO Importer run function - all_dbs:' . print_r($this->all_dbs, true));
+
 
     // Make sure the synonym types exists in the 'synonym_type' vocabulary.
     foreach (array_keys($this->syn_types) as $syn_type) {
@@ -638,7 +642,9 @@ class OBOImporter extends TripalImporter {
   public function postRun() {
 
     // Clear the cached terms
-    cache_clear_all('tripal_chado:term:*', 'cache', TRUE);
+    // TODO: Convert this to deal with new Drupal 9 cache system
+    // Help Reference: https://www.drupal.org/node/1272696
+    // cache_clear_all('tripal_chado:term:*', 'cache', TRUE);
 
     // Update the cv_root_mview materialized view.
     $this->logMessage("Updating the cv_root_mview materialized view...");
@@ -2122,7 +2128,7 @@ class OBOImporter extends TripalImporter {
     $fh = fopen($obo_file, 'r');
     while ($line = fgets($fh)) {
       $line_num++;
-      $size = drupal_strlen($line);
+      $size = \Drupal\Component\Utility\Unicode::strlen($line);
       $num_read += $size;
       $line = trim($line);
       $this->setItemsHandled($num_read);
@@ -2230,8 +2236,13 @@ class OBOImporter extends TripalImporter {
     }
 
     // Make sure there are CV records for all namespaces.
+    /*
+    // OLD
     $message = t('Found the following namespaces: !namespaces.',
       ['!namespaces' => implode(', ', array_keys($this->obo_namespaces))]);
+    */
+    $message = 'Found the following namespaces: ' . 
+      implode(', ', array_keys($this->obo_namespaces));    
     foreach ($this->obo_namespaces as $namespace => $cv_id) {
       $this->addCV($namespace);
     }
@@ -2454,7 +2465,7 @@ class OBOImporter extends TripalImporter {
     }
 
     // Now add the cvterm_dbxref record.
-    $cvterm_dbxref = new ChadoRecord('cvterm_dbxref');
+    $cvterm_dbxref = new \Drupal\tripal_chado\Services\ChadoRecord('cvterm_dbxref');
     $cvterm_dbxref->setValues([
       'cvterm_id' => $cvterm_id,
       'dbxref_id' => $dbxref->getID(),

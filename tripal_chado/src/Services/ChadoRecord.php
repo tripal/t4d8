@@ -136,6 +136,8 @@ class ChadoRecord {
   protected $column_names = [];
 
 
+  public $logger = null;
+
   /**
    * The ChadoRecord constructor
    *
@@ -146,6 +148,9 @@ class ChadoRecord {
    *  An optional record ID if this record is already present in Chado.
    */
   public function __construct($table_name, $record_id = NULL) {
+
+
+    $this->logger = \Drupal::service('tripal.logger');  
 
     if (!$table_name) {
       $message = t('ChadoRecord::_construct(). The $table_name argument is required for a ChadoRecord instance.');
@@ -253,14 +258,18 @@ class ChadoRecord {
    * @throws Exception
    */
   public function save() {
-
+    $this->logger->info('ChadoRecord save() - begin');
     // Determine if we need to perform an update or an insert.
     $num_matches = $this->find();
     if ($num_matches == 1) {
+      $this->logger->info('ChadoRecord save() - update');
       $this->update();
+      $this->logger->info('ChadoRecord save() - update complete');
     }
     if ($num_matches == 0) {
+      $this->logger->info('ChadoRecord save() - insert');
       $this->insert();
+      $this->logger->info('ChadoRecord save() - insert complete');
     }
     if ($num_matches > 1) {
       $message = t('ChadoRecord::save(). Could not save the record into the table, !table. ' .
@@ -678,6 +687,7 @@ class ChadoRecord {
 
     // If we only have a single match then we're good and we can update the
     // values for this object.
+    $results->allowRowCount = TRUE;
     $num_matches = $results->rowCount();
     if ($num_matches == 1) {
       $record = $results->fetchAssoc();
