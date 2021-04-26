@@ -548,7 +548,6 @@ class OBOImporter extends TripalImporter {
   public function run() {
 
     $arguments = $this->arguments['run_args'];
-    $this->logger->info('OBO Importer run function - arguments:' . print_r($arguments, true));
     $obo_id = $arguments['obo_id'];
 
     // Make sure the $obo_id is valid
@@ -560,7 +559,6 @@ class OBOImporter extends TripalImporter {
     if (!$obo) {
       throw new Exception("Invalid OBO ID provided: '$obo_id'.");
     }
-    $this->logger->info('OBO Importer run function - obo_id is valid');
 
     // Get the list of all CVs so we can save on lookups later
     $sql = "SELECT * FROM {cv} CV";
@@ -575,7 +573,6 @@ class OBOImporter extends TripalImporter {
     while ($db = $dbs->fetchObject()) {
       $this->all_dbs[$db->name] = $db;
     }
-    $this->logger->info('OBO Importer run function - select cvs and dbs');
 
     // Get the 'Subgroup' term that we will use for adding subsets.
     $term = chado_get_cvterm(['id' => 'NCIT:C25693']);
@@ -589,9 +586,7 @@ class OBOImporter extends TripalImporter {
     $this->logger->info('OBO Importer run function - access ChadoRecord');
     $syn_cv = new \Drupal\tripal_chado\Services\ChadoRecord('cv');
     $syn_cv->setValues(['name' => 'synonym_type']);
-    $this->logger->info('OBO Importer run function - setValues()');
     $syn_cv->save();
-    $this->logger->info('OBO Importer run function - save()');
     $this->all_cvs['synonym_type'] = (object) $syn_cv->getValues();
 
     
@@ -631,7 +626,6 @@ class OBOImporter extends TripalImporter {
     }
 
     // Run the importer!
-    $this->logger->info('OBO Importer run function - about to exec loadOBO_v1_2_id');
     $this->loadOBO_v1_2_id($obo);
   }
 
@@ -684,8 +678,6 @@ class OBOImporter extends TripalImporter {
    */
 
   private function loadOBO_v1_2_id($obo) {
-    $this->logger->info('Within OBO Importer loadOBO_v1_2_id function');
-
     // Convert the module name to the real path if present
     if (preg_match("/\{(.*?)\}/", $obo->path, $matches)) {
       $module = $matches[1];
@@ -693,7 +685,6 @@ class OBOImporter extends TripalImporter {
       $obo->path = preg_replace("/\{.*?\}/", $path, $obo->path);
     }
 
-    $this->logger->info('OBO Importer loadOBO_v1_2_id function - obo_path:' . print_r($obo->path, true));
     // if the reference is for a remote URL then run the URL processing function
     if (preg_match("/^https:\/\//", $obo->path) or
       preg_match("/^http:\/\//", $obo->path) or

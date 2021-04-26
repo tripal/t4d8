@@ -258,18 +258,13 @@ class ChadoRecord {
    * @throws Exception
    */
   public function save() {
-    $this->logger->info('ChadoRecord save() - begin');
     // Determine if we need to perform an update or an insert.
     $num_matches = $this->find();
     if ($num_matches == 1) {
-      $this->logger->info('ChadoRecord save() - update');
       $this->update();
-      $this->logger->info('ChadoRecord save() - update complete');
     }
     if ($num_matches == 0) {
-      $this->logger->info('ChadoRecord save() - insert');
       $this->insert();
-      $this->logger->info('ChadoRecord save() - insert complete');
     }
     if ($num_matches > 1) {
       $message = t('ChadoRecord::save(). Could not save the record into the table, !table. ' .
