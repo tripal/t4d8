@@ -648,12 +648,18 @@ class OBOImporter extends TripalImporter {
 
     // Update the cv_root_mview materialized view.
     $this->logMessage("Updating the cv_root_mview materialized view...");
-    $mview_id = tripal_get_mview_id('cv_root_mview');
-    tripal_populate_mview($mview_id);
+
+    // $mview_id = tripal_get_mview_id('cv_root_mview'); // OLD Deprecated
+    // tripal_populate_mview($mview_id); // OLD Deprecated
+
+    $mview_id = chado_get_mview_id('cv_root_mview');
+    chado_populate_mview($mview_id);
 
     $this->logMessage("Updating the db2cv_mview materialized view...");
-    $mview_id = tripal_get_mview_id('db2cv_mview');
-    tripal_populate_mview($mview_id);
+    // $mview_id = tripal_get_mview_id('db2cv_mview'); // OLD Deprecated
+    // tripal_populate_mview($mview_id); // OLD Deprecated
+    $mview_id = chado_get_mview_id('db2cv_mview');
+    chado_populate_mview($mview_id);
 
     // Update the cvtermpath table for each newly added CV.
     $this->logMessage("Updating cvtermpath table. This may take a while...");
