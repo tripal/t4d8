@@ -106,6 +106,8 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $this->tripal_add_tripal_cv_obo_table();
     // Attempt to add prerequisite ontology data (seems to be needed by the OBO
     // importers) for example
+    $this->logger->info("Install of Chado v1.3 (Step 3 of 3) Loading ontologies"
+      . " (this can take a few minutes.\n");
     $this->tripal_chado_load_ontologies();
     $this->logger->info("Install of Chado v1.3 (Step 3 of 3) Successful.\nInstallation Complete\n");
   }
