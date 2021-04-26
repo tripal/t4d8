@@ -583,7 +583,6 @@ class OBOImporter extends TripalImporter {
     $this->used_terms['rdfs:comment'] = $term->cvterm_id;
 
     // Make sure we have a 'synonym_type' vocabulary.
-    $this->logger->info('OBO Importer run function - access ChadoRecord');
     $syn_cv = new \Drupal\tripal_chado\Services\ChadoRecord('cv');
     $syn_cv->setValues(['name' => 'synonym_type']);
     $syn_cv->save();
