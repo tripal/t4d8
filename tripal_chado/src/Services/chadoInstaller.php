@@ -230,6 +230,91 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     */
   }
 
+
+  public function tripal_chado_add_tripal_mviews_table() {
+    $schema = array(
+      'fields' => array(
+        'mview_id' => array(
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not NULL' => TRUE
+        ),
+        'name' => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'not NULL' => TRUE
+        ),
+        'modulename' => array(
+          'type' => 'varchar',
+          'length' => 50,
+          'not NULL' => TRUE,
+          'description' => 'The module name that provides the callback for this job'
+        ),
+        'mv_table' => array(
+          'type' => 'varchar',
+          'length' => 128,
+          'not NULL' => FALSE
+        ),
+        'mv_specs' => array(
+          'type' => 'text',
+          'size' => 'normal',
+          'not NULL' => FALSE
+        ),
+        'mv_schema' => array(
+          'type' => 'text',
+          'size' => 'normal',
+          'not NULL' => FALSE
+        ),
+        'indexed' => array(
+          'type' => 'text',
+          'size' => 'normal',
+          'not NULL' => FALSE
+        ),
+        'query' => array(
+          'type' => 'text',
+          'size' => 'normal',
+          'not NULL' => TRUE
+        ),
+        'special_index' => array(
+          'type' => 'text',
+          'size' => 'normal',
+          'not NULL' => FALSE
+        ),
+        'last_update' => array(
+          'type' => 'int',
+          'not NULL' => FALSE,
+          'description' => 'UNIX integer time'
+        ),
+        'status'        => array(
+          'type' => 'text',
+          'size' => 'normal',
+          'not NULL' => FALSE
+        ),
+        'comment' => array(
+          'type' => 'text',
+          'size' => 'normal',
+          'not NULL' => FALSE
+        ),
+      ),
+      'indexes' => array(
+        'mview_id' => array('mview_id')
+      ),
+      'unique keys' => array(
+        'mv_table' => array('mv_table'),
+        'mv_name' => array('name'),
+      ),
+      'primary key' => array('mview_id'),
+    );
+    try {
+      // \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
+      chado_create_custom_table('tripal_mviews', $schema, TRUE, NULL, FALSE);
+    }
+    catch (\Exception $ex) {
+      print_r($ex);
+    }
+    // chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
+  }  
+
   public function tripal_add_tripal_cv_obo_table() {
     $schema = [
       'table' => 'tripal_cv_obo',
@@ -257,7 +342,7 @@ class chadoInstaller extends bulkPgSchemaInstaller {
       \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
     }
     catch (\Exception $ex) {
-
+      print_r($ex);
     }
     // chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
   }
