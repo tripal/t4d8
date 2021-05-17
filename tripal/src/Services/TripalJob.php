@@ -385,7 +385,7 @@ class TripalJob {
       ->condition('job_id', $this->job->job_id)
       ->execute();
 
-      drupal_set_message('Job execution failed: ' . $e->getMessage(), 'error');
+      \Drupal::messenger()->addMessage('Job execution failed: ' . $e->getMessage(), 'error');
     }
   }
 

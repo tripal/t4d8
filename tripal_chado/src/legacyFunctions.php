@@ -47,6 +47,7 @@ function tripal_chado_install_chado($action, $chado_schema = 'chado', $job = NUL
 function tripal_chado_drop_schema($schema, $job = NULL) {
   if ($schema) {
     \Drupal::service('tripal.bulkPgSchemaInstaller')->dropSchema($schema);
+    drupal_flush_all_caches();
   }
   else {
     \Drupal::logger('tripal_chado')->error("No schema was provided. Cannot drop.");

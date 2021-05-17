@@ -105,14 +105,14 @@ function tripal_add_job($job_name, $modulename, $callback, $arguments, $uid,
     if ($is_created) {
       // If no exceptions were thrown then we know the creation worked.  So
       // let the user know!
-      drupal_set_message(t("Job '%job_name' submitted.", ['%job_name' => $job_name]));
+      \Drupal::messenger()->addMessage(t("Job '%job_name' submitted.", ['%job_name' => $job_name]));
 
       // If this is the Tripal admin user then give a bit more information
       // about how to run the job.
       if ($user->hasPermission('administer tripal')) {
         $jobs_url = Link::fromTextAndUrl('jobs page', Url::fromUri('internal:/admin/tripal/tripal_jobs'))->toString();
-        drupal_set_message(t("Check the @jobs_url for status.", ['@jobs_url' => $jobs_url]));
-        drupal_set_message(t("You can execute the job queue manually on the ".
+        \Drupal::messenger()->addMessage(t("Check the @jobs_url for status.", ['@jobs_url' => $jobs_url]));
+        \Drupal::messenger()->addMessage(t("You can execute the job queue manually on the ".
           "command line using the following Drush command: " .
           "<br>drush trp-run-jobs --job_id=%job_id --username=%uname --root=%base_path",
           [
@@ -123,7 +123,7 @@ function tripal_add_job($job_name, $modulename, $callback, $arguments, $uid,
       }
     }
     else {
-      drupal_set_message(t("Job '%job_name' already exists in the queue and was not re-submitted.", ['%job_name' => $job_name]), 'warning');
+      \Drupal::messenger()->addMessage(t("Job '%job_name' already exists in the queue and was not re-submitted.", ['%job_name' => $job_name]), 'warning');
     }
     return $job->getJobID();
   }
@@ -275,14 +275,14 @@ function tripal_rerun_job($job_id, $goto_jobs_page = NULL) {
 
     // If no exceptions were thrown then we know the creation worked.  So
     // let the user know!
-    drupal_set_message(t("Job '%job_name' submitted.", ['%job_name' => $job->getJobName()]));
+    \Drupal::messenger()->addMessage(t("Job '%job_name' submitted.", ['%job_name' => $job->getJobName()]));
 
     // If this is the Tripal admin user then give a bit more information
     // about how to run the job.
     if ($user->hasPermission('administer tripal')) {
       $jobs_url = Link::fromTextAndUrl('jobs page', Url::fromUri('internal:/admin/tripal/tripal_jobs'))->toString();
-      drupal_set_message(t("Check the @jobs_url for status.", ['@jobs_url' => $jobs_url]));
-      drupal_set_message(t("You can execute the job queue manually on the ".
+      \Drupal::messenger()->addMessage(t("Check the @jobs_url for status.", ['@jobs_url' => $jobs_url]));
+      \Drupal::messenger()->addMessage(t("You can execute the job queue manually on the ".
           "command line using the following Drush command: " .
           "<br>drush trp-run-jobs --job_id=%job_id --username=%uname --root=%base_path",
           [
@@ -332,7 +332,7 @@ function tripal_cancel_job($job_id, $redirect = NULL) {
     $job->load($job_id);
     $job->cancel();
 
-    drupal_set_message('Job is now cancelled.');
+    \Drupal::messenger()->addMessage('Job is now cancelled.');
     return TRUE;
   }
   catch (Exception $e) {
@@ -440,7 +440,7 @@ function tripal_launch_job($do_parallel = 0, $job_id = NULL, $max_jobs = -1, $si
     }
     catch (Exception $e) {
       $job->logMessage($e->getMessage(), [], TRIPAL_ERROR);
-      drupal_set_message($e->getMessage(), 'error');
+      \Drupal::messenger()->addMessage($e->getMessage(), 'error');
     }
 
     if ($single) {
@@ -583,9 +583,9 @@ function tripal_execute_job($job_id, $redirect = TRUE) {
   // Run the job.
   if ($job->getStartTime() == 0 and $job->getEndTime() == 0) {
     tripal_launch_job(1, $job_id);
-    drupal_set_message(t("Job %job_id has finished executing. See below for more information.", ['%job_id' => $job_id]));
+    \Drupal::messenger()->addMessage(t("Job %job_id has finished executing. See below for more information.", ['%job_id' => $job_id]));
   }
   else {
-    drupal_set_message(t("Job %job_id cannot be executed. It has already finished.", ['%job_id' => $job_id]), 'error');
+    \Drupal::messenger()->addMessage(t("Job %job_id cannot be executed. It has already finished.", ['%job_id' => $job_id]), 'error');
   }
 }

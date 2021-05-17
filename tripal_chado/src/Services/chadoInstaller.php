@@ -69,11 +69,11 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $success = $this->applySQL($init_file, $chado_schema);
     if ($success) {
       // @upgrade tripal_report_error().
-      $this->logger->info("Install of Chado v1.3 (Step 2 of 3) Successful.\nInstallation Complete\n");
+      $this->logger->info("Install of Chado v1.3 (Step 2 of 3) Successful.\n");
     }
     else {
       // @upgrade tripal_report_error().
-      $this->logger->info("Installation (Step 2 of 3) Problems!  Please check output for errors.");
+      $this->logger->info("Installation (Step 2 of 3) Problems!  Please check output for errors.\n");
     }
 
     // 5) Finally set the version and tell Tripal.
@@ -110,6 +110,7 @@ class chadoInstaller extends bulkPgSchemaInstaller {
       . " (this can take a few minutes).\n");
     $this->tripal_chado_load_ontologies();
     $this->logger->info("Install of Chado v1.3 (Step 3 of 3) Successful.\nInstallation Complete\n");
+    
   }
 
 
@@ -232,223 +233,240 @@ class chadoInstaller extends bulkPgSchemaInstaller {
 
 
   public function tripal_chado_add_tripal_mviews_table() {
-    $schema = array(
-      'fields' => array(
-        'mview_id' => array(
-          'type' => 'serial',
-          'unsigned' => TRUE,
-          'not NULL' => TRUE
+    $tableExists = chado_table_exists('tripal_mviews');
+    if(!$tableExists) {
+      $schema = array(
+        'fields' => array(
+          'mview_id' => array(
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not NULL' => TRUE
+          ),
+          'name' => array(
+            'type' => 'varchar',
+            'length' => 255,
+            'not NULL' => TRUE
+          ),
+          'modulename' => array(
+            'type' => 'varchar',
+            'length' => 50,
+            'not NULL' => TRUE,
+            'description' => 'The module name that provides the callback for this job'
+          ),
+          'mv_table' => array(
+            'type' => 'varchar',
+            'length' => 128,
+            'not NULL' => FALSE
+          ),
+          'mv_specs' => array(
+            'type' => 'text',
+            'size' => 'normal',
+            'not NULL' => FALSE
+          ),
+          'mv_schema' => array(
+            'type' => 'text',
+            'size' => 'normal',
+            'not NULL' => FALSE
+          ),
+          'indexed' => array(
+            'type' => 'text',
+            'size' => 'normal',
+            'not NULL' => FALSE
+          ),
+          'query' => array(
+            'type' => 'text',
+            'size' => 'normal',
+            'not NULL' => TRUE
+          ),
+          'special_index' => array(
+            'type' => 'text',
+            'size' => 'normal',
+            'not NULL' => FALSE
+          ),
+          'last_update' => array(
+            'type' => 'int',
+            'not NULL' => FALSE,
+            'description' => 'UNIX integer time'
+          ),
+          'status'        => array(
+            'type' => 'text',
+            'size' => 'normal',
+            'not NULL' => FALSE
+          ),
+          'comment' => array(
+            'type' => 'text',
+            'size' => 'normal',
+            'not NULL' => FALSE
+          ),
         ),
-        'name' => array(
-          'type' => 'varchar',
-          'length' => 255,
-          'not NULL' => TRUE
+        'indexes' => array(
+          'mview_id' => array('mview_id')
         ),
-        'modulename' => array(
-          'type' => 'varchar',
-          'length' => 50,
-          'not NULL' => TRUE,
-          'description' => 'The module name that provides the callback for this job'
+        'unique keys' => array(
+          'mv_table' => array('mv_table'),
+          'mv_name' => array('name'),
         ),
-        'mv_table' => array(
-          'type' => 'varchar',
-          'length' => 128,
-          'not NULL' => FALSE
-        ),
-        'mv_specs' => array(
-          'type' => 'text',
-          'size' => 'normal',
-          'not NULL' => FALSE
-        ),
-        'mv_schema' => array(
-          'type' => 'text',
-          'size' => 'normal',
-          'not NULL' => FALSE
-        ),
-        'indexed' => array(
-          'type' => 'text',
-          'size' => 'normal',
-          'not NULL' => FALSE
-        ),
-        'query' => array(
-          'type' => 'text',
-          'size' => 'normal',
-          'not NULL' => TRUE
-        ),
-        'special_index' => array(
-          'type' => 'text',
-          'size' => 'normal',
-          'not NULL' => FALSE
-        ),
-        'last_update' => array(
-          'type' => 'int',
-          'not NULL' => FALSE,
-          'description' => 'UNIX integer time'
-        ),
-        'status'        => array(
-          'type' => 'text',
-          'size' => 'normal',
-          'not NULL' => FALSE
-        ),
-        'comment' => array(
-          'type' => 'text',
-          'size' => 'normal',
-          'not NULL' => FALSE
-        ),
-      ),
-      'indexes' => array(
-        'mview_id' => array('mview_id')
-      ),
-      'unique keys' => array(
-        'mv_table' => array('mv_table'),
-        'mv_name' => array('name'),
-      ),
-      'primary key' => array('mview_id'),
-    );
-    try {
+        'primary key' => array('mview_id'),
+      );
       // \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
-      chado_create_custom_table('tripal_mviews', $schema, TRUE, NULL, FALSE);
+      chado_create_custom_table('tripal_mviews', $schema, FALSE, NULL, FALSE);
     }
-    catch (\Exception $ex) {
-      print_r($ex);
+    else {
+      print "tripal_mviews chado table already exists... bypassing...\n";
     }
     // chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
   }  
 
   public function tripal_add_tripal_cv_obo_table() {
-    $schema = [
-      'table' => 'tripal_cv_obo',
-      'fields' => [
-        'obo_id' => [
-          'type' => 'serial',
-          'unsigned' => TRUE,
-          'not null' => TRUE
+    $tableExists = \Drupal::database()->schema()->tableExists('tripal_cv_obo');
+    if(!$tableExists) {    
+      $schema = [
+        // 'table' => 'tripal_cv_obo',
+        'fields' => [
+          'obo_id' => [
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE
+          ],
+          'name' => [
+            'type' => 'varchar',
+            'length' => 255
+          ],
+          'path'  => [
+            'type' => 'varchar',
+            'length' => 1024
+          ],
         ],
-        'name' => [
-          'type' => 'varchar',
-          'length' => 255
+        'indexes' => [
+          'tripal_cv_obo_idx1' => ['obo_id'],
         ],
-        'path'  => [
-          'type' => 'varchar',
-          'length' => 1024
-        ],
-      ],
-      'indexes' => [
-        'tripal_cv_obo_idx1' => ['obo_id'],
-      ],
-      'primary key' => ['obo_id'],
-    ];
-    try {
+        'primary key' => ['obo_id'],
+      ];
       \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
-    }
-    catch (\Exception $ex) {
-      print_r($ex);
     }
     // chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
   }
 
   public function tripal_chado_add_tripal_gff_temp_table() {
-    $schema = [
-      'table' => 'tripal_gff_temp',
-      'fields' => [
-        'feature_id' => [
-          'type' => 'int',
-          'not null' => TRUE,
+    $tableExists = chado_table_exists('tripal_gff_temp');
+    if(!$tableExists) {
+      $schema = [
+        // 'table' => 'tripal_gff_temp',
+        'fields' => [
+          'feature_id' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'organism_id' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'uniquename' => [
+            'type' => 'text',
+            'not null' => TRUE,
+          ],
+          'type_name' => [
+            'type' => 'varchar',
+            'length' => '1024',
+            'not null' => TRUE,
+          ],
         ],
-        'organism_id' => [
-          'type' => 'int',
-          'not null' => TRUE,
+        'indexes' => [
+          'tripal_gff_temp_idx0' => ['feature_id'],
+          'tripal_gff_temp_idx0' => ['organism_id'],
+          'tripal_gff_temp_idx1' => ['uniquename'],
         ],
-        'uniquename' => [
-          'type' => 'text',
-          'not null' => TRUE,
+        'unique keys' => [
+          'tripal_gff_temp_uq0' => ['feature_id'],
+          'tripal_gff_temp_uq1' => ['uniquename', 'organism_id', 'type_name'],
         ],
-        'type_name' => [
-          'type' => 'varchar',
-          'length' => '1024',
-          'not null' => TRUE,
-        ],
-      ],
-      'indexes' => [
-        'tripal_gff_temp_idx0' => ['feature_id'],
-        'tripal_gff_temp_idx0' => ['organism_id'],
-        'tripal_gff_temp_idx1' => ['uniquename'],
-      ],
-      'unique keys' => [
-        'tripal_gff_temp_uq0' => ['feature_id'],
-        'tripal_gff_temp_uq1' => ['uniquename', 'organism_id', 'type_name'],
-      ],
-    ];
-    chado_create_custom_table('tripal_gff_temp', $schema, TRUE, NULL, FALSE);
+      ];
+      chado_create_custom_table('tripal_gff_temp', $schema, FALSE, NULL, FALSE);
+    }
+    else {
+      print "tripal_gff_temp chado table already exists... bypassing...\n";
+    }
   }
 
   public function tripal_chado_add_tripal_gffprotein_temp_table() {
-    $schema = [
-      'table' => 'tripal_gffprotein_temp',
-      'fields' => [
-        'feature_id' => [
-          'type' => 'int',
-          'not null' => TRUE,
+    $tableExists = chado_table_exists('tripal_gffprotein_temp');
+    if(!$tableExists) {    
+      $schema = [
+        // 'table' => 'tripal_gffprotein_temp',
+        'fields' => [
+          'feature_id' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'parent_id' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'fmin' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'fmax' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
         ],
-        'parent_id' => [
-          'type' => 'int',
-          'not null' => TRUE,
+        'indexes' => [
+          'tripal_gff_temp_idx0' => ['feature_id'],
+          'tripal_gff_temp_idx0' => ['parent_id'],
         ],
-        'fmin' => [
-          'type' => 'int',
-          'not null' => TRUE,
+        'unique keys' => [
+          'tripal_gff_temp_uq0' => ['feature_id'],
         ],
-        'fmax' => [
-          'type' => 'int',
-          'not null' => TRUE,
-        ],
-      ],
-      'indexes' => [
-        'tripal_gff_temp_idx0' => ['feature_id'],
-        'tripal_gff_temp_idx0' => ['parent_id'],
-      ],
-      'unique keys' => [
-        'tripal_gff_temp_uq0' => ['feature_id'],
-      ],
-    ];
-    chado_create_custom_table('tripal_gffprotein_temp', $schema, TRUE, NULL, FALSE);
+      ];
+      chado_create_custom_table('tripal_gffprotein_temp', $schema, FALSE, NULL, FALSE);
+    }
+    else {
+      print "tripal_gffprotein_temp chado table already exists... bypassing...\n";
+    }
   }
   
   public function tripal_chado_add_tripal_gffcds_temp_table() {
-    $schema = [
-      'table' => 'tripal_gffcds_temp',
-      'fields' => [
-        'feature_id' => [
-          'type' => 'int',
-          'not null' => TRUE,
+    $tableExists = chado_table_exists('tripal_gffcds_temp');
+    if(!$tableExists) {    
+      $schema = [
+        // 'table' => 'tripal_gffcds_temp',
+        'fields' => [
+          'feature_id' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'parent_id' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'phase' => [
+            'type' => 'int',
+            'not null' => FALSE,
+          ],
+          'strand' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'fmin' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
+          'fmax' => [
+            'type' => 'int',
+            'not null' => TRUE,
+          ],
         ],
-        'parent_id' => [
-          'type' => 'int',
-          'not null' => TRUE,
+        'indexes' => [
+          'tripal_gff_temp_idx0' => ['feature_id'],
+          'tripal_gff_temp_idx0' => ['parent_id'],
         ],
-        'phase' => [
-          'type' => 'int',
-          'not null' => FALSE,
-        ],
-        'strand' => [
-          'type' => 'int',
-          'not null' => TRUE,
-        ],
-        'fmin' => [
-          'type' => 'int',
-          'not null' => TRUE,
-        ],
-        'fmax' => [
-          'type' => 'int',
-          'not null' => TRUE,
-        ],
-      ],
-      'indexes' => [
-        'tripal_gff_temp_idx0' => ['feature_id'],
-        'tripal_gff_temp_idx0' => ['parent_id'],
-      ],
-    ];
-    chado_create_custom_table('tripal_gffcds_temp', $schema, TRUE, NULL, FALSE);
+      ];
+      chado_create_custom_table('tripal_gffcds_temp', $schema, FALSE, NULL, FALSE);
+    }
+    else {
+      print "tripal_gffcds_temp chado table already exists... bypassing...\n";
+    }
   }
 
   /**

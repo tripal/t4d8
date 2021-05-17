@@ -1032,14 +1032,14 @@ function chado_associate_cvterm($basetable, $record_id, $cvterm, $options = [], 
  */
 function chado_insert_obo($name, $path) {
   // Make sure an OBO with the same name doesn't already exist.
-  $obo_id = db_select('tripal_cv_obo', 'tco')
+  $obo_id = \Drupal::database()->select('tripal_cv_obo', 'tco')
     ->fields('tco', ['obo_id'])
     ->condition('name', $name)
     ->execute()
     ->fetchField();
 
   if ($obo_id) {
-    db_update('tripal_cv_obo')
+    \Drupal::database()->update('tripal_cv_obo')
       ->fields([
         'path' => $path,
       ])
@@ -1048,7 +1048,7 @@ function chado_insert_obo($name, $path) {
     return $obo_id;
   }
   else {
-    $obo_id = db_insert('tripal_cv_obo')
+    $obo_id = \Drupal::database()->insert('tripal_cv_obo')
       ->fields([
         'name' => $name,
         'path' => $path,
