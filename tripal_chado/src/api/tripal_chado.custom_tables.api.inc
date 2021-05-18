@@ -151,7 +151,9 @@ function chado_create_custom_table($table, $schema, $skip_if_exists = TRUE, $mvi
         
         // Create the table if it doesn't exist.
         if (!$table_exists) {
+            print "Creating the table...";
             $connection->schema()->createTable($chado_dot . $table, $schema);
+            print "successfully created...\n";
             $created = 1;
         }
 
@@ -160,7 +162,9 @@ function chado_create_custom_table($table, $schema, $skip_if_exists = TRUE, $mvi
             // Drop the table
             $connection->schema()->dropTable($chado_dot . $table);
             // And re-add it
+            print "Creating the table...";
             $connection->schema()->createTable($chado_dot . $table, $schema);
+            print "successfully created...\n";
             $recreated = 1;
 
             // TODO the old code unset "referring_tables" from $schema,

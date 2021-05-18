@@ -104,6 +104,9 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $this->tripal_chado_add_tripal_gffcds_temp_table();
     // Attempt to add the tripal_chado_add_tripal_cv_obo table into chado
     $this->tripal_add_tripal_cv_obo_table();
+    // Attempt to add the mview table
+    $this->tripal_chado_add_tripal_mviews_table();
+
     // Attempt to add prerequisite ontology data (seems to be needed by the OBO
     // importers) for example
     $this->logger->info("Install of Chado v1.3 (Step 3 of 3) Loading ontologies"
@@ -240,63 +243,63 @@ class chadoInstaller extends bulkPgSchemaInstaller {
           'mview_id' => array(
             'type' => 'serial',
             'unsigned' => TRUE,
-            'not NULL' => TRUE
+            'not null' => TRUE
           ),
           'name' => array(
             'type' => 'varchar',
             'length' => 255,
-            'not NULL' => TRUE
+            'not null' => TRUE
           ),
           'modulename' => array(
             'type' => 'varchar',
             'length' => 50,
-            'not NULL' => TRUE,
+            'not null' => TRUE,
             'description' => 'The module name that provides the callback for this job'
           ),
           'mv_table' => array(
             'type' => 'varchar',
             'length' => 128,
-            'not NULL' => FALSE
+            'not null' => FALSE
           ),
           'mv_specs' => array(
             'type' => 'text',
             'size' => 'normal',
-            'not NULL' => FALSE
+            'not null' => FALSE
           ),
           'mv_schema' => array(
             'type' => 'text',
             'size' => 'normal',
-            'not NULL' => FALSE
+            'not null' => FALSE
           ),
           'indexed' => array(
             'type' => 'text',
             'size' => 'normal',
-            'not NULL' => FALSE
+            'not null' => FALSE
           ),
           'query' => array(
             'type' => 'text',
             'size' => 'normal',
-            'not NULL' => TRUE
+            'not null' => TRUE
           ),
           'special_index' => array(
             'type' => 'text',
             'size' => 'normal',
-            'not NULL' => FALSE
+            'not null' => FALSE
           ),
           'last_update' => array(
             'type' => 'int',
-            'not NULL' => FALSE,
+            'not null' => FALSE,
             'description' => 'UNIX integer time'
           ),
           'status'        => array(
             'type' => 'text',
             'size' => 'normal',
-            'not NULL' => FALSE
+            'not null' => FALSE
           ),
           'comment' => array(
             'type' => 'text',
             'size' => 'normal',
-            'not NULL' => FALSE
+            'not null' => FALSE
           ),
         ),
         'indexes' => array(
@@ -309,7 +312,7 @@ class chadoInstaller extends bulkPgSchemaInstaller {
         'primary key' => array('mview_id'),
       );
       // \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
-      chado_create_custom_table('tripal_mviews', $schema, FALSE, NULL, FALSE);
+      chado_create_custom_table('tripal_mviews', $schema, TRUE, NULL, FALSE);
     }
     else {
       print "tripal_mviews chado table already exists... bypassing...\n";
@@ -381,7 +384,7 @@ class chadoInstaller extends bulkPgSchemaInstaller {
           'tripal_gff_temp_uq1' => ['uniquename', 'organism_id', 'type_name'],
         ],
       ];
-      chado_create_custom_table('tripal_gff_temp', $schema, FALSE, NULL, FALSE);
+      chado_create_custom_table('tripal_gff_temp', $schema, TRUE, NULL, FALSE);
     }
     else {
       print "tripal_gff_temp chado table already exists... bypassing...\n";
@@ -419,7 +422,7 @@ class chadoInstaller extends bulkPgSchemaInstaller {
           'tripal_gff_temp_uq0' => ['feature_id'],
         ],
       ];
-      chado_create_custom_table('tripal_gffprotein_temp', $schema, FALSE, NULL, FALSE);
+      chado_create_custom_table('tripal_gffprotein_temp', $schema, TRUE, NULL, FALSE);
     }
     else {
       print "tripal_gffprotein_temp chado table already exists... bypassing...\n";
@@ -462,7 +465,7 @@ class chadoInstaller extends bulkPgSchemaInstaller {
           'tripal_gff_temp_idx0' => ['parent_id'],
         ],
       ];
-      chado_create_custom_table('tripal_gffcds_temp', $schema, FALSE, NULL, FALSE);
+      chado_create_custom_table('tripal_gffcds_temp', $schema, TRUE, NULL, FALSE);
     }
     else {
       print "tripal_gffcds_temp chado table already exists... bypassing...\n";
@@ -527,7 +530,7 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     }
     else {
       // @upgrade tripal_report_error().
-      $this->logger->info("Install of Chado v1.3 (Step 1 of 2) Successful.\nInstallation Complete\n");
+      $this->logger->info("Install of Chado v1.3 (Step 1 of 2) Successful.\n");
       return TRUE;
     }
   }
