@@ -33,4 +33,19 @@ interface TripalJobFactoryInterface extends PluginInspectionInterface {
    *   An instance of an already created Tripal Job.
    */
   public function load($id);
+
+  /**
+   * List Tripal Jobs.
+   *
+   * List all tripal jobs of this TripalJobFactory plugin type with the given status. If an empty
+   * string is given for status then all jobs are returned. See the TripalJobInterface for the valid
+   * set of status strings.
+   *
+   * @param string $status
+   *   The status of TripalJobInterface instances returned or an empty string to return all
+   *   instances.
+   * @return array
+   *   An array of TripalJobInterface instances.
+   */
+  public function list($status);
 }
