@@ -106,6 +106,8 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $this->tripal_add_tripal_cv_obo_table();
     // Attempt to add the mview table
     $this->tripal_add_tripal_mviews_table();
+    // Attempt to add the chado_cvterm_mapping table
+    $this->tripal_add_chado_cvterm_mapping();
 
     // Attempt to add prerequisite ontology data (seems to be needed by the OBO
     // importers) for example
