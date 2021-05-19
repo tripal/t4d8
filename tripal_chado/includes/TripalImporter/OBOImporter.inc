@@ -705,6 +705,7 @@ class OBOImporter extends TripalImporter {
         }
         else {
           print "ERROR: could not find OBO file: '$obo->path'\n";
+          exit;
         }
       }
     }

@@ -1196,6 +1196,15 @@ function chado_update_cvtermpath($cv_id, $job = NULL) {
 }
 
 /**
+ *
+ * @param unknown $cv_id
+ */
+function chado_clear_cvtermpath($cv_id) {
+  $sql = "DELETE FROM {cvtermpath} WHERE cv_id = :cv_id";
+  chado_query($sql, [':cv_id' => $cv_id]);
+}
+
+/**
  * Treats a term within the ontology as a root.
  *
  * In order to add all relationships between a term and it's descendents each

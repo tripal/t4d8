@@ -234,6 +234,49 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     */
   }
 
+  public function tripal_add_chado_cvterm_mapping() {
+    $tableExists = \Drupal::database()->schema()->tableExists('chado_cvterm_mapping');
+    if(!$tableExists) {    
+      $schema = array (
+        'fields' => array (
+          'mapping_id' => array(
+            'type' => 'serial',
+            'not null' => TRUE
+          ),
+          'cvterm_id' => array (
+            'type' => 'int',
+            'not null' => TRUE
+          ),
+          'chado_table' => array (
+            'type' => 'varchar',
+            'length' => 128,
+            'not null' => TRUE
+          ),
+          'chado_field' => array (
+            'type' => 'varchar',
+            'length' => 128,
+            'not null' => FALSE
+          ),
+        ),
+        'primary key' => array (
+          0 => 'mapping_id'
+        ),
+        'unique key' => array(
+          'cvterm_id',
+        ),
+        'indexes' => array(
+          'tripal_cvterm2table_idx1' => array('cvterm_id'),
+          'tripal_cvterm2table_idx2' => array('chado_table'),
+          'tripal_cvterm2table_idx3' => array('chado_table', 'chado_field'),
+        ),
+      ); 
+      \Drupal::database()->schema()->createTable('chado_cvterm_mapping', $schema);
+      // chado_create_custom_table('tripal_mviews', $schema, TRUE, NULL, FALSE);
+    }
+    else {
+      print "chado_cvterm_mapping table already exists... bypassing...\n";
+    }       
+  }
 
   public function tripal_add_tripal_mviews_table() {
     $tableExists = \Drupal::database()->schema()->tableExists('tripal_mviews');
