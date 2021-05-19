@@ -105,7 +105,7 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     // Attempt to add the tripal_chado_add_tripal_cv_obo table into chado
     $this->tripal_add_tripal_cv_obo_table();
     // Attempt to add the mview table
-    $this->tripal_chado_add_tripal_mviews_table();
+    $this->tripal_add_tripal_mviews_table();
 
     // Attempt to add prerequisite ontology data (seems to be needed by the OBO
     // importers) for example
@@ -235,8 +235,8 @@ class chadoInstaller extends bulkPgSchemaInstaller {
   }
 
 
-  public function tripal_chado_add_tripal_mviews_table() {
-    $tableExists = chado_table_exists('tripal_mviews');
+  public function tripal_add_tripal_mviews_table() {
+    $tableExists = \Drupal::database()->schema()->tableExists('tripal_mviews');
     if(!$tableExists) {
       $schema = array(
         'fields' => array(
@@ -311,13 +311,12 @@ class chadoInstaller extends bulkPgSchemaInstaller {
         ),
         'primary key' => array('mview_id'),
       );
-      // \Drupal::database()->schema()->createTable('tripal_cv_obo', $schema);
-      chado_create_custom_table('tripal_mviews', $schema, TRUE, NULL, FALSE);
+      \Drupal::database()->schema()->createTable('tripal_mviews', $schema);
+      // chado_create_custom_table('tripal_mviews', $schema, TRUE, NULL, FALSE);
     }
     else {
-      print "tripal_mviews chado table already exists... bypassing...\n";
+      print "tripal_mviews table already exists... bypassing...\n";
     }
-    // chado_create_custom_table('tripal_cv_obo', $schema, TRUE, NULL, FALSE);
   }  
 
   public function tripal_add_tripal_cv_obo_table() {
