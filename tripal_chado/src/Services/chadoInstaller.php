@@ -108,6 +108,8 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     $this->tripal_add_tripal_mviews_table();
     // Attempt to add the chado_cvterm_mapping table
     $this->tripal_add_chado_cvterm_mapping();
+    // Attempt to add the tripal_bundle table
+    $this->tripal_add_tripal_bundle_schema();
 
     // Attempt to add prerequisite ontology data (seems to be needed by the OBO
     // importers) for example
@@ -235,6 +237,71 @@ class chadoInstaller extends bulkPgSchemaInstaller {
     }
     */
   }
+
+
+  /**
+   * The base table for TripalEntity entities.
+   *
+   * This table contains a list of Biological Data Types.
+   * For the example above (5 genes and 10 mRNAs), there would only be two records in
+   * this table one for "gene" and another for "mRNA".
+   */
+  function tripal_add_tripal_bundle_schema() {
+    $tableExists = \Drupal::database()->schema()->tableExists('tripal_bundle');
+    if(!$tableExists) {    
+      $schema = array(
+        'description' => 'Stores information about defined tripal data types.',
+        'fields' => array(
+          'id' => array(
+            'type' => 'serial',
+            'not null' => TRUE,
+            'description' => 'Primary Key: Unique numeric ID.',
+          ),
+          'type' => array(
+            'description' => 'The type of entity (e.g. TripalEntity).',
+            'type' => 'varchar',
+            'length' => 64,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'term_id' => array(
+            'description' => 'The term_id for the type of entity. This term_id corresponds to a TripalTerm record.',
+            'type' => 'int',
+            'not null' => TRUE,
+          ),
+          'name' => array(
+            'description' => 'The name of the bundle. This should be an official vocabulary ID (e.g. SO, RO, GO) followed by an underscore and the term accession.',
+            'type' => 'varchar',
+            'length' => 1024,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+          'label' => array(
+            'description' => 'The human-readable name of this bundle.',
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => '',
+          ),
+        ),
+        'indexes' => array(
+          'name' => array('name'),
+          'term_id' => array('term_id'),
+          'label' => array('label'),
+        ),
+        'primary key' => array('id'),
+        'unique keys' => array(
+          'name' => array('name'),
+        ),
+      );
+      \Drupal::database()->schema()->createTable('tripal_bundle', $schema);
+    }
+    else {
+      print "tripal_bundle table already exists... bypassing...\n";
+    }  
+  }
+
+
 
   public function tripal_add_chado_cvterm_mapping() {
     $tableExists = \Drupal::database()->schema()->tableExists('chado_cvterm_mapping');
