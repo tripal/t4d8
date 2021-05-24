@@ -241,7 +241,7 @@ function tripal_run_importer_run($loader, $job) {
     $loader->run();
 
     if ($job) {
-      $job->logMessage("\nDone.\n");
+      \Drupal::service('tripal.logger')->info("\nDone.\n");
     }
 
     // Remove the temp file

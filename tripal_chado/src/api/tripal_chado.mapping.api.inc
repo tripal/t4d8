@@ -35,12 +35,19 @@ function tripal_chado_map_cvterms() {
     }
 
     // Now we also want to map tripal terms for existing bundles
-    $sql =
+    /* $sql =
       "SELECT
          (SELECT vocabulary FROM tripal_vocab TV WHERE id = TM.vocab_id),
           accession,
           name
        FROM tripal_term TM";
+    */
+    $sql =
+    "SELECT
+       (SELECT namespace FROM tripal_vocab TV WHERE id = TM.idspace_id),
+        accession,
+        name
+     FROM tripal_term TM";    
     $results = db_query($sql);
     while ($tripal_term = $results->fetchObject()) {
       $voc = $tripal_term->vocabulary;

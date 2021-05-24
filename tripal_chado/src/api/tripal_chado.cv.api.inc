@@ -1152,9 +1152,9 @@ function chado_update_cvtermpath($cv_id, $job = NULL) {
     }
     $total_items = count(array_keys($cache['rels']));
     if ($job) {
-      $job->logMessage('Found !total relationships in this vocabulary.', ['!total' => $total_items]);
+      \Drupal::service('tripal.logger')->info('Found ' . $total_items  . ' relationships in this vocabulary.');
       $job->setTotalItems($total_items);
-      $job->logMessage('Note: Progress updates occur as each term is processed and ' .
+      \Drupal::service('tripal.logger')->info('Note: Progress updates occur as each term is processed and ' .
         'some terms take longer than others.');
       $job->setProgress(0);
       $job->setInterval(1);
@@ -1179,7 +1179,7 @@ function chado_update_cvtermpath($cv_id, $job = NULL) {
       $root_name = $root->name;
 
       if ($job) {
-        $job->logMessage('Processing tree root: ' . $root_name . '...');
+        \Drupal::service('tripal.logger')->info('Processing tree root: ' . $root_name . '...');
       }
 
       // Now start descending through the tree and add the relationships
