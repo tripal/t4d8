@@ -8,7 +8,7 @@ use Drupal\Component\Plugin\PluginInspectionInterface;
  * Defines an interface for Tripal Jobs. This extends the plugin inspection
  * interface to provide information about its plugin factory.
  */
-interface TripalJobFactoryInterface extends PluginInspectionInterface {
+interface TripalJobInterface extends PluginInspectionInterface {
 
   /**
    * Executes this Job.
@@ -60,7 +60,7 @@ interface TripalJobFactoryInterface extends PluginInspectionInterface {
    *   The progress of this job. This must be in the range of 0 to 100, where 0 is no progress and
    *   100 is complete progress.
    */
-  public function endTime();
+  public function progress();
 
   /**
    * Get job user.
@@ -70,5 +70,5 @@ interface TripalJobFactoryInterface extends PluginInspectionInterface {
    * @return string
    *   User that created this job.
    */
-  public function endTime();
+  public function user();
 }
