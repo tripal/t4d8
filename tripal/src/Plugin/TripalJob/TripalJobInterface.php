@@ -27,7 +27,7 @@ interface TripalJobInterface extends PluginInspectionInterface {
    *   The current status of this job. Valid status strings are Waiting, Completed, Running,
    *   Cancelled, or Error.
    */
-  public function status();
+  public function getStatus();
 
   /**
    * Get start time.
@@ -38,7 +38,7 @@ interface TripalJobInterface extends PluginInspectionInterface {
    *   The start time of this job measured in the number of seconds since the Unix Epoch
    *   (January 1 1970 00:00:00 GMT).
    */
-  public function startTime();
+  public function getStartTime();
 
   /**
    * Get end time.
@@ -49,7 +49,7 @@ interface TripalJobInterface extends PluginInspectionInterface {
    *   The end time of this job measured in the number of seconds since the Unix Epoch
    *   (January 1 1970 00:00:00 GMT).
    */
-  public function endTime();
+  public function getEndTime();
 
   /**
    * Get job progress.
@@ -60,7 +60,7 @@ interface TripalJobInterface extends PluginInspectionInterface {
    *   The progress of this job. This must be in the range of 0 to 100, where 0 is no progress and
    *   100 is complete progress.
    */
-  public function progress();
+  public function getProgress();
 
   /**
    * Get job user.
@@ -70,5 +70,5 @@ interface TripalJobInterface extends PluginInspectionInterface {
    * @return string
    *   User that created this job.
    */
-  public function user();
+  public function getUser();
 }

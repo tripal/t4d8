@@ -10,49 +10,6 @@ use Drupal\Component\Plugin\PluginBase;
  */
 interface TripalJobBase implements TripalJobInterface {
 
-  /*
-   * This plugin's ID.
-   */
-  private $pluginId;
-
-  /*
-   * This plugin's definition.
-   */
-  private $pluginDefinition;
-
-  /**
-   * @see TripalJobInterface
-   */
-  public function __construct($factory) {
-    $this->pluginId = $factory->getPluginId();
-    $this->pluginDefinition = $factory->getPluginDefinition();
-  }
-
-  /**
-   * @see TripalJobInterface
-   */
-  public function status();
-
-  /**
-   * @see TripalJobInterface
-   */
-  public function startTime();
-
-  /**
-   * @see TripalJobInterface
-   */
-  public function endTime();
-
-  /**
-   * @see TripalJobInterface
-   */
-  public function progress();
-
-  /**
-   * @see TripalJobInterface
-   */
-  public function user();
-
   /**
    * @see Drupal\Component\Plugin\PluginInspectionInterface
    */
@@ -66,4 +23,27 @@ interface TripalJobBase implements TripalJobInterface {
   public function getPluginDefinition() {
     return $this->pluginDefinition;
   }
+
+  /**
+   * Constructs new Tripal Job.
+   *
+   * Constructs this new Tripal Job with the given factory.
+   *
+   * @param \Drupal\tripal\Plugin\TripalJob\TripalJobFactoryInterface factory
+   *   The Tripal Job Factory that created this new instance.
+   */
+  protected function __construct($factory) {
+    $this->pluginId = $factory->getPluginId();
+    $this->pluginDefinition = $factory->getPluginDefinition();
+  }
+
+  /*
+   * This plugin's ID.
+   */
+  private $pluginId;
+
+  /*
+   * This plugin's definition.
+   */
+  private $pluginDefinition;
 }

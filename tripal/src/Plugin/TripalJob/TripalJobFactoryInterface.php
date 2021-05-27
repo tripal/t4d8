@@ -47,5 +47,5 @@ interface TripalJobFactoryInterface extends PluginInspectionInterface {
    * @return array
    *   An array of TripalJobInterface instances.
    */
-  public function list($status);
+  public function getList($status);
 }
