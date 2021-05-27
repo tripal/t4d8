@@ -19,6 +19,16 @@ interface TripalJobInterface extends PluginInspectionInterface {
   public function execute();
 
   /**
+   * Get Job ID.
+   *
+   * Get the ID of this Tripal Job.
+   *
+   * @return int
+   *   The unique job ID of this Tripal Job.
+   */
+  public function getJobID();
+
+  /**
    * Get job status.
    *
    * Get the status of this Tripal job.
