@@ -14,14 +14,14 @@ interface TripalJobBase implements TripalJobInterface {
    * @see Drupal\Component\Plugin\PluginInspectionInterface
    */
   public function getPluginId() {
-    return $this->pluginId;
+    return $this->_pluginId;
   }
 
   /**
    * @see Drupal\Component\Plugin\PluginInspectionInterface
    */
   public function getPluginDefinition() {
-    return $this->pluginDefinition;
+    return $this->_pluginDefinition;
   }
 
   /**
@@ -33,17 +33,17 @@ interface TripalJobBase implements TripalJobInterface {
    *   The Tripal Job Factory that created this new instance.
    */
   protected function __construct($factory) {
-    $this->pluginId = $factory->getPluginId();
-    $this->pluginDefinition = $factory->getPluginDefinition();
+    $this->_pluginId = $factory->getPluginId();
+    $this->_pluginDefinition = $factory->getPluginDefinition();
   }
 
   /*
    * This plugin's ID.
    */
-  private $pluginId;
+  private $_pluginId;
 
   /*
    * This plugin's definition.
    */
-  private $pluginDefinition;
+  private $_pluginDefinition;
 }
