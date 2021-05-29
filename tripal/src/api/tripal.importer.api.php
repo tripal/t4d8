@@ -169,7 +169,7 @@ function tripal_load_include_importer_class($class) {
  * @ingroup tripal_importer_api
  */
 function tripal_run_importer($import_id, \Drupal\tripal\Services\TripalJob $job = NULL) {
-
+  $logger = \Drupal::service('tripal.logger');
   $loader = NULL;
   $loader = TripalImporter::byID($import_id);
   $loader->setJob($job);
@@ -213,7 +213,10 @@ function tripal_run_importer($import_id, \Drupal\tripal\Services\TripalJob $job 
     //cache_clear_all();
   } catch (Exception $e) {
     if ($job) {
-      $job->logMessage($e->getMessage(), [], TRIPAL_ERROR);
+      // $job->logMessage($e->getMessage(), [], TRIPAL_ERROR);
+      $logger->error(
+        $e->getMessage()
+      );
     }
     if ($loader) {
       $loader->cleanFile();

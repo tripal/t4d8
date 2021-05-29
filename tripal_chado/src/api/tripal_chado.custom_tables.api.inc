@@ -111,7 +111,7 @@ $transaction = db_transaction();
  * @return void
  */
 function chado_create_custom_table($table, $schema, $skip_if_exists = TRUE, $mview_id = NULL, $redirect = TRUE) {
-// Basic argument checks
+    // Basic argument checks
     if (!$table)
     {
         tripal_report_error('trp_ctables', TRIPAL_ERROR,

@@ -90,12 +90,12 @@ function tripal_get_job($job_id) {
  * @ingroup tripal_notify_api
  */
 function tripal_report_error($type, $severity, $message, $variables = [], $options = []) {
-
+  
   $logger = \Drupal::service('tripal.logger');
   $logger->warning("DEPRECATED: the '@function' function will be removed from the API in " .
       "a future release. Please use the TripalLogger service for logging.",
       ['@function' => 'tripal_report_error']);
-
+  debug_print_backtrace(0,3);
   $suppress = getenv('TRIPAL_SUPPRESS_ERRORS');
 
   if (strtolower($suppress) === 'true') {
@@ -189,7 +189,10 @@ function tripal_report_error($type, $severity, $message, $variables = [], $optio
 
   // Print to the Tripal error log but only if the severity is not info.
   if (($severity != TRIPAL_INFO)) {
-    tripal_log('[' . strtoupper($type) . '] ' . $print_message . "\n", $severity_string);
+    // tripal_log('[' . strtoupper($type) . '] ' . $print_message . "\n", $severity_string);
+    $logger->error(
+      '[' . strtoupper($type) . '] ' . $print_message . "\n"
+    );
   }
 
   if (array_key_exists('job', $options) and is_a($options['job'], 'TripalJob')) {
@@ -236,6 +239,7 @@ function tripal_log($message, $type = 'error', $options = []) {
       "a future release. Please use the TripalLogger service for logging.",
       ['@function' => 'tripal_log']);
 
+  debug_print_backtrace(0,3);
 
   global $base_url;
   $prefix = '[site ' . $base_url . '] [TRIPAL ' . strtoupper($type) . '] ';
