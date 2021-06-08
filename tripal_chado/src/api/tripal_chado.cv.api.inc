@@ -1384,3 +1384,110 @@ function _chado_update_cvtermpath_process_children($cv_id, $root_id, $cvterm_id,
     _chado_update_cvtermpath_process_children($cv_id, $root_id, $child_id, $path, $cache, $next_depth);
   }
 }
+
+/**
+ * This function sets the default vocabulary for a given table and field.
+ *
+ * @param $table
+ *   The name of the table that contains a field with a foreign key
+ *   relationship to the cvterm table
+ * @param $field
+ *   The table field name that has the foreign key relationship to the
+ *   cvterm table for which the default vocabulary will be set
+ * @param $cv_name
+ *   The name of the vocabulary
+ *
+ * @return
+ *   TRUE if set, FALSE if an error occured
+ *
+ * @ingroup tripal_legacy_chado_cv_api
+ */
+function tripal_set_default_cv($table, $field, $cv_name, $cv_id = FALSE) {
+
+  // Get the CV object
+  if ($cv_id) {
+    $cv = tripal_get_cv(['cv_id' => $cv_id]);
+  }
+  else {
+    $cv = tripal_get_cv(['name' => $cv_name]);
+  }
+
+  if ($cv) {
+    // first delete any entries for this table and field
+    $num_deleted = \Drupal::database()->delete('tripal_cv_defaults')
+      ->condition('table_name', $table)
+      ->condition('field_name', $field)
+      ->execute();
+
+    // now add the default value
+    $cv_default_id = \Drupal::database()->insert('tripal_cv_defaults')
+      ->fields([
+        'table_name' => $table,
+        'field_name' => $field,
+        'cv_id' => $cv->cv_id,
+      ])
+      ->execute();
+
+    if (!$cv_default_id) {
+      tripal_report_error('tripal_chado', TRIPAL_WARNING,
+        "Cannot set default vocabulary for %table.%field. Check the error logs.",
+        ['%table' => $table, '%field' => $field]);
+      return FALSE;
+    }
+  }
+  else {
+    tripal_report_error('tripal_chado', TRIPAL_WARNING,
+      "Cannot set default vocabulary for %table.%field. The vocabulary name, '%cvname', doesn't exist.",
+      ['%table' => $table, '%field' => $field, '%cvname' => $cv_name]);
+    return FALSE;
+  }
+}
+
+
+/**tripal_chado_cv_api*/
+/**
+ * Retrieves a chado controlled vocabulary variable
+ *
+ * @param $identifier
+ *   An array with the key stating what the identifier is. Supported keys (only
+ *   on of the following unique keys is required):
+ *    - cv_id: the chado cv.cv_id primary key.
+ *    - name: the chado cv.name field (assume unique).
+ * @param $options
+ *   An array of options. Supported keys include:
+ *     - Any keys supported by chado_generate_var(). See that function
+ *       definition fot additional details.
+ *
+ * NOTE: the $identifier parameter can really be any array similar to $values
+ * passed into chado_select_record(). It should fully specify the cv record to
+ * be returned.
+ *
+ * @return
+ *   If unique values were passed in as an identifier then an object describing
+ *   the cv will be returned (will be a chado variable from
+ *   chado_generate_var()). Otherwise, FALSE will be returned.
+ *
+ * @ingroup tripal_chado_module_DEPRECATED_api
+ */
+function tripal_get_cv($identifiers, $options = []) {
+  return chado_get_cv($identifiers, $options);
+}
+
+
+/**
+ * Adds a controlled vocabulary to the CV table of Chado.
+ *
+ * @param $name
+ *   The name of the controlled vocabulary. These are typically all lower case
+ *   with no special characters other than an undrescore (for spaces).
+ * @param $comment
+ *   A description or definition of the vocabulary.
+ *
+ * @return
+ *   An object populated with fields from the newly added database.
+ *
+ * @ingroup tripal_chado_module_DEPRECATED_api
+ */
+function tripal_insert_cv($name, $definition) {
+  return chado_insert_cv($name, $definition);
+}
