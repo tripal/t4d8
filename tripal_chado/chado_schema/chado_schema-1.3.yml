@@ -6436,27 +6436,27 @@ treatment:
       columns:
         protocol_id: protocol_id
   referring_tables: biomaterial_treatment
-tripal_gff_temp:
-  description: "tripal_gff_temp"
-  fields:
-    feature_id:
-      type: integer
-      not null: TRUE
-    organism_id:
-      type: integer
-      not null: TRUE 
-    uniquename:
-      type: text
-      not null: TRUE
-    type_name:
-      type: character varying
-      not null: TRUE
-      size: 1024
-  unique keys:
-    tripal_gff_temp_uq0: feature_id
-    tripal_gff_temp_uq1: uniquename, organism_id, type_name
-  indexes:
-    tripal_gff_temp_idx0: feature_id
-    tripal_gff_temp_idx0: organism_id
-    tripal_gff_temp_idx1: uniquename    
+# tripal_gff_temp:
+#   description: "tripal_gff_temp"
+#   fields:
+#     feature_id:
+#       type: integer
+#       not null: TRUE
+#     organism_id:
+#       type: integer
+#       not null: TRUE 
+#     uniquename:
+#       type: text
+#       not null: TRUE
+#     type_name:
+#       type: character varying
+#       not null: TRUE
+#       size: 1024
+#   unique keys:
+#     tripal_gff_temp_uq0: feature_id
+#     tripal_gff_temp_uq1: uniquename, organism_id, type_name
+#   indexes:
+#     tripal_gff_temp_idx0: feature_id
+#     tripal_gff_temp_idx0: organism_id
+#     tripal_gff_temp_idx1: uniquename    
 

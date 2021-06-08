@@ -242,7 +242,12 @@ class ChadoSchema {
       $table_arr = $schema[$table];
     }
     else {
-      $table_arr =  FALSE;
+      // Try to check if it's a custom table
+      $table_arr = $this->getCustomTableSchema($table);
+      // print_r($table_arr);
+      if($table_arr == FALSE) {
+        $table_arr = FALSE; //TODO: Should this return false so below is not processed?
+      }
     }
 
     // Ensure all the parts are set.
@@ -274,7 +279,7 @@ class ChadoSchema {
 
     // if the table_arr is empty then maybe this is a custom table
     if (!is_array($table_arr) or count($table_arr) == 0) {
-      //$table_arr = $this->getCustomTableSchema($table);
+      // $table_arr = $this->getCustomTableSchema($table);
       return FALSE;
     }
 

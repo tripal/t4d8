@@ -1343,9 +1343,9 @@ function chado_select_record($table, $columns, $values, $options = NULL, $chado_
   }
 
   // Get the table description.
-  echo 'chado_select_record Table:' . $table . "\n";
+  // echo 'chado_select_record Table:' . $table . "\n";
   $table_desc = chado_get_schema($table, $chado_schema_name);
-  echo 'chado_select_record ' . $table . ' ' . print_r($table_desc, TRUE) . "\n";
+  // echo 'chado_select_record ' . $table . ' ' . print_r($table_desc, TRUE) . "\n";
   if (!is_array($table_desc)) {
     // tripal_report_error('tripal_chado', TRIPAL_WARNING,
     //   'chado_insert_record; There is no table description for !table_name',
@@ -1455,13 +1455,12 @@ function chado_select_record($table, $columns, $values, $options = NULL, $chado_
   // being an array with a 'field', 'op', and 'data' keys with all foreign keys
   // followed.
 
-  echo ">> \n";
-  echo 'All values: ' . print_r($values, TRUE) . "\n";
-  echo 'Table desc: ' . print_r($table_desc['fields'], TRUE) . "\n";
+  // echo ">> \n";
+  // echo 'All values: ' . print_r($values, TRUE) . "\n";
+  // echo 'Table desc: ' . print_r($table_desc['fields'], TRUE) . "\n";
   foreach ($values as $field => $value) {
-    echo "-----------------------------------------\n";
-    //echo 'Check Field: ' . print_r($field, TRUE) . "\n";
-    //echo 'Check Value: ' . print_r($value, TRUE) . "\n";
+    // echo "-----------------------------------------\n";
+
 
     // Require the field be in the table description.
     if (!array_key_exists($field, $table_desc['fields'])) {
@@ -1476,14 +1475,6 @@ function chado_select_record($table, $columns, $values, $options = NULL, $chado_
       //   ['print' => $print_errors]
       // );
 
-      /*
-      print_r('Table:');
-      print_r($table);
-      print_r("\n");
-      print_r('Field:');
-      print_r($field);
-      print_r("\n");
-      */
 
 
       $logger->error(
