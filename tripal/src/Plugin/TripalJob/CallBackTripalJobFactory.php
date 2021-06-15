@@ -17,8 +17,24 @@ interface CallBackTripalJobFactory extends TripalJobFactoryBase {
 
   /**
    * @see \Drupal\tripal\Plugin\TripalJob\TripalJobFactoryInterface
+   *
+   * @param array $definition
+   *   The definition array has the following keys:
+   *   - callback: The name of a function to be called when the job is executed.
+   *   - arguments:  An array of arguments to be passed on to the callback.
+   *   - includes: An array of paths to files that should be included in order
+   *     to execute the job. Use the module_load_include function to get a path
+   *     for a given file.
+   *   - user: The name of the user that created this job.
    */
   public function create($definition) {
+    return CallBackTripalJob::create(
+      $definition["callback"]
+      ,$definition["arguments"]
+      ,$definition["includes"]
+      ,$definition["user"]
+      ,$this
+    );
   }
 
   /**

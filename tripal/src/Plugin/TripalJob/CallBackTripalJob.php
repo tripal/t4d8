@@ -79,7 +79,7 @@ interface CallbackTripalJob implements TripalJobBase {
   public static function loadFromDB($id,$factory) {
     $database = \Drupal::database();
     $query = $database->query(
-      "SELECT * FROM `callback_tripal_jobs` WHERE id = ':id'"
+      "SELECT * FROM `callback_tripal_jobs` WHERE `id` = ':id'"
       ,[":id" => $id]
     );
     $job = $query->fetchObject();
@@ -133,43 +133,107 @@ interface CallbackTripalJob implements TripalJobBase {
   /**
    * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
    */
+  public function execute() {
+    $this->setStartTime(time());
+    $this->setStatus("running");
+    $this->updateDB();
+  }
+
+  /**
+   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
+   */
   public function getJobID() {
-    return $this->jobID;
+    return $this->_jobID;
   }
 
   /**
    * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
    */
   public function getStatus() {
-    return $this->status;
+    return $this->_status;
   }
 
   /**
    * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
    */
   public function getStartTime() {
-    return $this->startTime;
+    return $this->_startTime;
   }
 
   /**
    * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
    */
   public function getEndTime() {
-    return $this->endTime;
+    return $this->_endTime;
   }
 
   /**
    * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
    */
   public function getProgress() {
-    return $this->progress;
+    return $this->_progress;
   }
 
   /**
    * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
    */
   public function getUser() {
-    return $this->user;
+    return $this->_user;
+  }
+
+  /**
+   * Sets this job's status.
+   *
+   * Sets the status of this callback tripal job to the given status. This does not update the
+   * database.
+   *
+   * @param string status
+   *   The new status of this job. This must be one of the legal string status values.
+   *
+   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
+   */
+  private function setStatus($status) {
+    $this->_status = $status;
+  }
+
+  /**
+   * Sets this job's start time.
+   *
+   * Sets the start time of this callback tripal job to the given time. This does not update the
+   * database.
+   *
+   * @param int t
+   *   The time this callback tripal job started.
+   *
+   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
+   */
+  private function setStartTime($t) {
+    $this->_startTime = $t;
+  }
+
+  /**
+   * Updates to database.
+   *
+   * Updates all fields of this callback tripal job to the database.
+   */
+  private function updateDB() {
+    $this->status = $status;
+    $database = \Drupal::database();
+    $u = $database->update("callback_tripal_jobs");
+    $u->fields(
+      [
+        "status" => $this->_status
+        ,"start_time" => $this->_startTime
+        ,"end_time" => $this->_endTime
+        ,"progress" => $this->_progress
+        ,"user" => $this->_user
+        ,"callback" => $this->_callback
+        ,"arguments" => serialize($this->_arguments)
+        ,"includes" => serialize($this->_includes)
+      ]
+    );
+    $u->condition("id",$this->_jobID);
+    $u->execute();
   }
 
   /*
