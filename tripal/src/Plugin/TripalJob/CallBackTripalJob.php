@@ -38,27 +38,27 @@ interface CallbackTripalJob implements TripalJobBase {
   public static function create($callback,$arguments,$includes,$user,$factory) {
     $ret = new CallbackTripalJob($factory);
     $database = \Drupal::database();
-    $ret->_status = "Waiting";
-    $ret->_startTime = 0
-    $ret->_endTime = 0
-    $ret->_progress = 0
-    $ret->_user = $user
+    $ret->setStatus("Waiting");
+    $ret->setStartTime(0);
+    $ret->setEndTime(0);
+    $ret->setProgress(0);
+    $ret->setUser($user);
     $ret->_callback = $callback
     $ret->_arguments = $arguments
     $ret->_includes = $includes
     $sql = $database->insert("callback_tripal_jobs")->fields(
       [
-        "status" => $ret->_status
-        ,"start_time" => $ret->_startTime
-        ,"end_time" => $ret->_endTime
-        ,"progress" => $ret->_progress
-        ,"user" => $ret->_user
+        "status" => $this->getStatus()
+        ,"start_time" => $this->getStartTime()
+        ,"end_time" => $this->getEndTime()
+        ,"progress" => $this->getProgress()
+        ,"user" => $this->getUser()
         ,"callback" => $ret->_callback
         ,"arguments" => serialize($ret->_arguments)
         ,"includes" => serialize($ret->_includes)
       ]
     )
-    $ret->_jobID = $sql->execute();
+    $ret->setJobID($sql->execute());
     return $ret;
   }
 
@@ -106,12 +106,12 @@ interface CallbackTripalJob implements TripalJobBase {
    */
   public static function loadFromObject($job,$factory) {
     $ret = new CallbackTripalJob($factory);
-    $ret->_jobID = $job->id;
-    $ret->_status = $job->waiting;
-    $ret->_startTime = $job->start_time;
-    $ret->_endTime = $job->end_time;
-    $ret->_progress = $job->progress;
-    $ret->_user = $job->user;
+    $ret->setJobID($job->id);
+    $ret->setStatus($job->status);
+    $ret->setStartTime($job->start_time);
+    $ret->setEndTime($job->end_time);
+    $ret->setProgress($job->progress);
+    $ret->setUser($job->user);
     $ret->_callback = $job->callback;
     $ret->_arguments = unserialize($job->arguments);
     $ret->_includes = unserialize($job->includes);
@@ -140,78 +140,6 @@ interface CallbackTripalJob implements TripalJobBase {
   }
 
   /**
-   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
-   */
-  public function getJobID() {
-    return $this->_jobID;
-  }
-
-  /**
-   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
-   */
-  public function getStatus() {
-    return $this->_status;
-  }
-
-  /**
-   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
-   */
-  public function getStartTime() {
-    return $this->_startTime;
-  }
-
-  /**
-   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
-   */
-  public function getEndTime() {
-    return $this->_endTime;
-  }
-
-  /**
-   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
-   */
-  public function getProgress() {
-    return $this->_progress;
-  }
-
-  /**
-   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
-   */
-  public function getUser() {
-    return $this->_user;
-  }
-
-  /**
-   * Sets this job's status.
-   *
-   * Sets the status of this callback tripal job to the given status. This does not update the
-   * database.
-   *
-   * @param string status
-   *   The new status of this job. This must be one of the legal string status values.
-   *
-   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
-   */
-  private function setStatus($status) {
-    $this->_status = $status;
-  }
-
-  /**
-   * Sets this job's start time.
-   *
-   * Sets the start time of this callback tripal job to the given time. This does not update the
-   * database.
-   *
-   * @param int t
-   *   The time this callback tripal job started.
-   *
-   * @see \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
-   */
-  private function setStartTime($t) {
-    $this->_startTime = $t;
-  }
-
-  /**
    * Updates to database.
    *
    * Updates all fields of this callback tripal job to the database.
@@ -222,11 +150,11 @@ interface CallbackTripalJob implements TripalJobBase {
     $u = $database->update("callback_tripal_jobs");
     $u->fields(
       [
-        "status" => $this->_status
-        ,"start_time" => $this->_startTime
-        ,"end_time" => $this->_endTime
-        ,"progress" => $this->_progress
-        ,"user" => $this->_user
+        "status" => $this->getStatus()
+        ,"start_time" => $this->getStartTime()
+        ,"end_time" => $this->getEndTime()
+        ,"progress" => $this->getProgress()
+        ,"user" => $this->getUser()
         ,"callback" => $this->_callback
         ,"arguments" => serialize($this->_arguments)
         ,"includes" => serialize($this->_includes)
@@ -237,32 +165,17 @@ interface CallbackTripalJob implements TripalJobBase {
   }
 
   /*
-   * This plugin's job ID.
+   * This plugin's callback function name.
    */
-  private $_jobID;
+  private $_callback;
 
   /*
-   * This plugin's status.
+   * This plugin's arguments array.
    */
-  private $_status;
+  private $_arguments;
 
   /*
-   * This plugin's start time.
+   * This plugin's include path array.
    */
-  private $_startTime;
-
-  /*
-   * This plugin's end time.
-   */
-  private $_endTime;
-
-  /*
-   * This plugin's progress.
-   */
-  private $_progress;
-
-  /*
-   * This plugin's user.
-   */
-  private $_user;
+  private $_includes;
 }
