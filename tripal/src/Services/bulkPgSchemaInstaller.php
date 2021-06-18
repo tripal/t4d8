@@ -69,10 +69,13 @@ class bulkPgSchemaInstaller {
    */
   public function setSchema($schema_name) {
 
-    // Schema name must be all lowercase with no special characters.
-    // It should also be a single word.
-    if (preg_match('/^[a-z][a-z0-9]+$/', $schema_name) === 0) {
-      $this->logger->error('The schema name must be a single word containing only lower case letters or numbers and cannot begin with a number.');
+    // Schema name must be all lowercase with no special characters with the
+    // exception of underscores and diacritical marks (which can be uppercase).
+    // ref.: https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+    // It should not contain any space and must not being with "pg_".
+    if ((preg_match('/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/', $schema_name) === 0)
+        || (0 === strpos($schema_name, 'pg_'))) {
+      $this->logger->error(t('The schema name must not begin with a number or "pg_" and only contain lower case letters, numbers, underscores and diacritical marks.'));
       return FALSE;
     }
     else {

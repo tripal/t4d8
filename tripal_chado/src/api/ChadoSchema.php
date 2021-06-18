@@ -113,11 +113,15 @@ class ChadoSchema {
     if ($schema_name === NULL) {
       $this->schema_name = 'chado';
     }
-    elseif (preg_match('/^[a-z][a-z0-9]+$/', $schema_name) === 0) {
-      // Schema name must be a single word containing only lower case letters
-      // or numbers and cannot begin with a number.
+    elseif ((preg_match('/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/', $schema_name) === 0)
+            || (0 === strpos($schema_name, 'pg_'))) {
+      // Schema name must be all lowercase with no special characters with the
+      // exception of underscores and diacritical marks (which can be uppercase).
+      // ref.: https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+      // It should not contain any space and must not being with "pg_".
       $this->logger->error(
-        "Schema name must be a single alphanumeric word beginning with a number and all lowercase.");
+        'The schema name must not begin with a number or "pg_" and only contain lower case letters, numbers, underscores and diacritical marks.'
+      );
       return FALSE;
     }
     else {
@@ -146,11 +150,15 @@ class ChadoSchema {
   static function schemaExists($schema_name) {
 
     // First make sure we have a valid schema name.
-    if (preg_match('/^[a-z][a-z0-9]+$/', $schema_name) === 0) {
-      // Schema name must be a single word containing only lower case letters
-      // or numbers and cannot begin with a number.
+    if ((preg_match('/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/', $schema_name) === 0)
+            || (0 === strpos($schema_name, 'pg_'))) {
+      // Schema name must be all lowercase with no special characters with the
+      // exception of underscores and diacritical marks (which can be uppercase).
+      // ref.: https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+      // It should not contain any space and must not being with "pg_".
       $this->logger->error(
-        "Schema name must be a single alphanumeric word beginning with a number and all lowercase.");
+        'The schema name must not begin with a number or "pg_" and only contain lower case letters, numbers, underscores and diacritical marks.'
+      );
       return FALSE;
     }
 
