@@ -113,15 +113,8 @@ class ChadoSchema {
     if ($schema_name === NULL) {
       $this->schema_name = 'chado';
     }
-    elseif ((preg_match('/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/', $schema_name) === 0)
-            || (0 === strpos($schema_name, 'pg_'))) {
-      // Schema name must be all lowercase with no special characters with the
-      // exception of underscores and diacritical marks (which can be uppercase).
-      // ref.: https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
-      // It should not contain any space and must not being with "pg_".
-      $this->logger->error(
-        'The schema name must not begin with a number or "pg_" and only contain lower case letters, numbers, underscores and diacritical marks.'
-      );
+    elseif ($schema_issue = ChadoSchema::isInvalidSchemaName($schema_name)) {
+      $this->logger->error($schema_issue);
       return FALSE;
     }
     else {
@@ -139,6 +132,48 @@ class ChadoSchema {
   }
 
   /**
+   * Check that the given schema name is a valid schema name.
+   *
+   * @param string $schema_name
+   *   The name of the schema to validate.
+   *
+   * @return string
+   *   A string describing the issue in the name or an empty string if the
+   *   schema name is valid.
+   */
+  static function isInvalidSchemaName($schema_name) {
+
+    $issue = '';
+    // Schema name must be all lowercase with no special characters with the
+    // exception of underscores and diacritical marks (which can be uppercase).
+    // ref.:
+    // https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+    // It should also not contain any space and must not begin with "pg_".
+    // Note: capital letter could be used but are silently converted to
+    // lowercase by PostgreSQL. Here, we want to avoid ambiguity so we forbid
+    // uppercase.
+    $schema_name_regex = '/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/';
+    // Make sure we have a valid schema name.
+    if (0 === preg_match($schema_name_regex, $schema_name)) {
+      $issue = t(
+        'The schema name must not begin with a number and only contain lower case letters, numbers, underscores and diacritical marks.'
+      );
+    }
+    elseif (0 === strpos($schema_name, 'pg_')) {
+      $issue = t(
+        'The schema name must not begin with "pg_" (PostgreSQL reserved prefix).'
+      );
+    }
+    elseif ('public' == $schema_name) {
+      $issue = t(
+        'The "public" schema is reseved to Drupal and should not be used for Chado.'
+      );
+    }
+
+    return $issue;
+  }
+
+  /**
    * Check that any given chado schema exists.
    *
    * @param string $schema
@@ -150,15 +185,8 @@ class ChadoSchema {
   static function schemaExists($schema_name) {
 
     // First make sure we have a valid schema name.
-    if ((preg_match('/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/', $schema_name) === 0)
-            || (0 === strpos($schema_name, 'pg_'))) {
-      // Schema name must be all lowercase with no special characters with the
-      // exception of underscores and diacritical marks (which can be uppercase).
-      // ref.: https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
-      // It should not contain any space and must not being with "pg_".
-      $this->logger->error(
-        'The schema name must not begin with a number or "pg_" and only contain lower case letters, numbers, underscores and diacritical marks.'
-      );
+    if ($schema_issue = ChadoSchema::isInvalidSchemaName($schema_name)) {
+      $this->logger->error($schema_issue);
       return FALSE;
     }
 

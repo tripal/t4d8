@@ -170,14 +170,10 @@ class ChadoInstallForm extends FormBase {
     // Cannot do this and still allow multiple chado installs...
     // @todo add a hook for modules to add in to the prepare or install processes.
 
-    // Schema name must be all lowercase with no special characters with the
-    // exception of underscores and diacritical marks (which can be uppercase).
-    // ref.: https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
-    // It should not contain any space and must not being with "pg_".
-    if ((preg_match('/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/', $values['schema_name']) === 0)
-        || (0 === strpos($values['schema_name'], 'pg_'))) {
-      $form_state->setErrorByName('schema_name',
-        t('The schema name must not begin with a number or "pg_" and only contain lower case letters, numbers, underscores and diacritical marks.'));
+    // Check provided schema name.
+    $schema_issue = \Drupal\tripal_chado\api\ChadoSchema::isInvalidSchemaName($values['schema_name']);
+    if ($schema_issue) {
+      $form_state->setErrorByName('schema_name', $schema_issue);
     }
 
     parent::validateForm($form, $form_state);
