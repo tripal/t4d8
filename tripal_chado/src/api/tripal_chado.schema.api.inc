@@ -187,6 +187,23 @@ function chado_add_index($table, $name, $fields, $chado_schema = NULL) {
 }
 
 /**
+ * Check that the given schema name is a valid schema name.
+ *
+ * @param string $schema_name
+ *   The name of the schema to check.
+ *
+ * @return string
+ *   A string describing the issue in the name or an empty string if the
+ *   schema name is valid.
+ *
+ * @ingroup tripal_chado_schema_api
+ */
+function chado_is_invalid_schema_name($chado_schema) {
+  // Check if the schema name is correct or not.
+  return \Drupal\tripal_chado\api\ChadoSchema::isInvalidSchemaName($chado_schema);
+}
+
+/**
  * Check that any given schema exists.
  *
  * @param string $schema
@@ -376,11 +393,14 @@ function chado_get_version($exact = FALSE, $warn_if_unsupported = FALSE, $chado_
     $chado_schema = chado_get_schema_name('chado');
   }
 
-  // Schema name must be a single word containing only lower case letters
-  // or numbers and cannot begin with a number.
-  if (preg_match('/^[a-z][a-z0-9]+$/', $chado_schema) === 0) {
+  // Schema name must be all lowercase with no special characters with the
+  // exception of underscores and diacritical marks (which can be uppercase).
+  // ref.: https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+  // It should not contain any space and must not being with "pg_".
+  if ((preg_match('/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/', $chado_schema) === 0)
+      || (0 === strpos($chado_schema, 'pg_'))) {
     \Drupal::logger('tripal_chado')->error(
-      "chado_get_version: Schema name must be a single alphanumeric word beginning with a number and all lowercase.");
+      "chado_get_version: The schema name must not begin with a number or \"pg_\" and only contain lower case letters, numbers, underscores and diacritical marks.");
     return FALSE;
   }
 

@@ -40,6 +40,7 @@ class ChadoComplianceTest extends BrowserTestBase {
    * @group chado-compliance
    */
   public function testTableCompliance() {
+    ChadoSchema::testMode(TRUE);
 
     // FOR EVERY CHADO TABLE!
     $schema_version = 1.3;

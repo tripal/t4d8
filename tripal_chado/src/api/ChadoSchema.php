@@ -85,6 +85,12 @@ class ChadoSchema {
   protected $default_db = NULL;
 
   /**
+   * @var bool
+   * Internal flag for testing features.
+   */
+  protected static $test_mode = FALSE;
+
+  /**
    * The ChadoSchema constructor.
    *
    * @param string $version
@@ -113,11 +119,8 @@ class ChadoSchema {
     if ($schema_name === NULL) {
       $this->schema_name = 'chado';
     }
-    elseif (preg_match('/^[a-z][a-z0-9]+$/', $schema_name) === 0) {
-      // Schema name must be a single word containing only lower case letters
-      // or numbers and cannot begin with a number.
-      $this->logger->error(
-        "Schema name must be a single alphanumeric word beginning with a number and all lowercase.");
+    elseif ($schema_issue = ChadoSchema::isInvalidSchemaName($schema_name)) {
+      $this->logger->error($schema_issue);
       return FALSE;
     }
     else {
@@ -135,6 +138,76 @@ class ChadoSchema {
   }
 
   /**
+   * Get/set internal test mode.
+   *
+   * @param bool $test_mode
+   *   New test mode value.
+   *
+   * @return bool
+   *   Current test mode status. TRUE means test mode is enabled.
+   */
+  static function testMode(?bool $test_mode = NULL) {
+    if (isset($test_mode)) {
+      ChadoSchema::$test_mode = $test_mode;
+    }
+    return ChadoSchema::$test_mode;
+  }
+
+  /**
+   * Check that the given schema name is a valid schema name.
+   *
+   * @param string $schema_name
+   *   The name of the schema to validate.
+   *
+   * @return string
+   *   A string describing the issue in the name or an empty string if the
+   *   schema name is valid.
+   */
+  static function isInvalidSchemaName($schema_name) {
+
+    $issue = '';
+    // Schema name must be all lowercase with no special characters with the
+    // exception of underscores and diacritical marks (which can be uppercase).
+    // ref.:
+    // https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+    // It should also not contain any space and must not begin with "pg_".
+    // Note: capital letter could be used but are silently converted to
+    // lowercase by PostgreSQL. Here, we want to avoid ambiguity so we forbid
+    // uppercase.
+    $schema_name_regex = '/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/';
+    // Make sure we have a valid schema name.
+    if (0 === preg_match($schema_name_regex, $schema_name)) {
+      $issue = t(
+        'The schema name must not begin with a number and only contain lower case letters, numbers, underscores and diacritical marks.'
+      );
+    }
+    elseif (0 === strpos($schema_name, 'pg_')) {
+      $issue = t(
+        'The schema name must not begin with "pg_" (PostgreSQL reserved prefix).'
+      );
+    }
+    elseif ('public' == $schema_name) {
+      $issue = t(
+        'The "public" schema is reseved to Drupal and should not be used for Chado.'
+      );
+    }
+    elseif (('testchado' == $schema_name) && !ChadoSchema::$test_mode) {
+      // @todo: Should we protect the "test" prefix and not just "testchado"?
+      // Value of \Drupal\Tests\tripal_chado::$schemaName.
+      $issue = t(
+        'The "testchado" schema name is reseved for Tripal unit tests.'
+      );
+    }
+    elseif (63 < strlen($schema_name)) {
+      $issue = t(
+        'The schema name must contain less than 64 characters.'
+      );
+    }
+
+    return $issue;
+  }
+
+  /**
    * Check that any given chado schema exists.
    *
    * @param string $schema
@@ -146,11 +219,9 @@ class ChadoSchema {
   static function schemaExists($schema_name) {
 
     // First make sure we have a valid schema name.
-    if (preg_match('/^[a-z][a-z0-9]+$/', $schema_name) === 0) {
-      // Schema name must be a single word containing only lower case letters
-      // or numbers and cannot begin with a number.
-      $this->logger->error(
-        "Schema name must be a single alphanumeric word beginning with a number and all lowercase.");
+    $schema_issue = ChadoSchema::isInvalidSchemaName($schema_name);
+    if ($schema_issue) {
+      \Drupal::logger('tripal_chado')->error($schema_issue);
       return FALSE;
     }
 
