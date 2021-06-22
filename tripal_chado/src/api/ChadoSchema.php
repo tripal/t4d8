@@ -85,6 +85,12 @@ class ChadoSchema {
   protected $default_db = NULL;
 
   /**
+   * @var bool
+   * Internal flag for testing features.
+   */
+  protected static $test_mode = FALSE;
+
+  /**
    * The ChadoSchema constructor.
    *
    * @param string $version
@@ -132,6 +138,22 @@ class ChadoSchema {
   }
 
   /**
+   * Get/set internal test mode.
+   *
+   * @param bool $test_mode
+   *   New test mode value.
+   *
+   * @return bool
+   *   Current test mode status. TRUE means test mode is enabled.
+   */
+  static function testMode(?bool $test_mode = NULL) {
+    if (isset($test_mode)) {
+      ChadoSchema::$test_mode = $test_mode;
+    }
+    return ChadoSchema::$test_mode;
+  }
+
+  /**
    * Check that the given schema name is a valid schema name.
    *
    * @param string $schema_name
@@ -169,6 +191,18 @@ class ChadoSchema {
         'The "public" schema is reseved to Drupal and should not be used for Chado.'
       );
     }
+    elseif (('testchado' == $schema_name) && !ChadoSchema::$test_mode) {
+      // @todo: Should we protect the "test" prefix and not just "testchado"?
+      // Value of \Drupal\Tests\tripal_chado::$schemaName.
+      $issue = t(
+        'The "testchado" schema name is reseved for Tripal unit tests.'
+      );
+    }
+    elseif (63 < strlen($schema_name)) {
+      $issue = t(
+        'The schema name must contain less than 64 characters.'
+      );
+    }
 
     return $issue;
   }
@@ -185,8 +219,9 @@ class ChadoSchema {
   static function schemaExists($schema_name) {
 
     // First make sure we have a valid schema name.
-    if ($schema_issue = ChadoSchema::isInvalidSchemaName($schema_name)) {
-      $this->logger->error($schema_issue);
+    $schema_issue = ChadoSchema::isInvalidSchemaName($schema_name);
+    if ($schema_issue) {
+      \Drupal::logger('tripal_chado')->error($schema_issue);
       return FALSE;
     }
 

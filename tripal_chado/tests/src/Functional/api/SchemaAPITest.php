@@ -32,23 +32,94 @@ class SchemaAPITest extends BrowserTestBase {
   protected static $schemaName = 'testchado';
 
   /**
+   * Tests ChadoSchema static functions.
+   *
+   * @group tripal-chado
+   * @group chado-schema
+   */
+  public function testChadoSchemaStaticAPI() {
+    $connection = Database::getConnection();
+
+    // Tests on schema name function...
+    // Empty name.
+    $schema_issue = ChadoSchema::isInvalidSchemaName('');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating empty schema name.');
+
+    // Reserved names.
+    $schema_issue = ChadoSchema::isInvalidSchemaName('public');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating "public" schema name.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName('pg_catalog');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating "pg_catalog" reserved schema name.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName('pg_');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating "pg_*" reserved schema names.');
+
+    // Starting with a number.
+    $schema_issue = ChadoSchema::isInvalidSchemaName('4chado');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating schema name starting by a number.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName('42chado');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating schema name starting by a number.');
+    
+    // Invalid characters.
+    $schema_issue = ChadoSchema::isInvalidSchemaName('cha do');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating schema name with invalid characters - test 1.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName('chado!');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating schema name with invalid characters - test 2.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName('chado>');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating schema name with invalid characters - test 3.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName('chado]');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating schema name with invalid characters - test 4.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName('chado}');
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating schema name with invalid characters - test 5.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName("chado\x7F");
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating schema name with invalid characters - test 6.');
+    // Name too long.
+    $schema_issue = ChadoSchema::isInvalidSchemaName("chadochadochadochadochadochadochadochadochadochadochadochadochado");
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating too long schema name.');
+
+    // Valid names.
+    $schema_issue = ChadoSchema::isInvalidSchemaName("chado");
+    $this->assertEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): validating very basic schema name.');
+    $schema_issue = ChadoSchema::isInvalidSchemaName("tripal_chado_v2");
+    $this->assertEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): validating basic schema name.');
+    // Latin1 version of "ÇhàÐº ø" in UTF8.
+    $schema_issue = ChadoSchema::isInvalidSchemaName("\xC7h\xE0\xD0\xBA\xA0\xF8");
+    $this->assertEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): validating complex schema name.');
+
+    // Check a random schema name does not exist.
+    $exists = ChadoSchema::schemaExists('jlmoosilskswbpeqtdurbsfpamiwiwl');
+    $this->assertFalse($exists, 'ChadoSchema::schemaExists(): A non-existing Chado schema is not available.');
+
+    // Check test mode.
+    $schema_issue = ChadoSchema::isInvalidSchemaName(SchemaAPITest::$schemaName);
+    $this->assertNotEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): invalidating "testchado" reserved schema name by default.');
+    ChadoSchema::testMode(TRUE);
+    $schema_issue = ChadoSchema::isInvalidSchemaName(SchemaAPITest::$schemaName);
+    $this->assertEmpty($schema_issue, 'ChadoSchema::isInvalidSchemaName(): validating "testchado" schema name for tests.');
+
+    // Check that test Chado schema exists.
+    $exists = ChadoSchema::schemaExists(SchemaAPITest::$schemaName);
+    $this->assertTrue($exists, 'ChadoSchema::schemaExists(): Test Chado schema available.');
+  }
+
+  /**
    * Tests chado_table_exists() and chado_column_exists().
    *
    * @group tripal-chado
    * @group chado-schema
    */
   public function testChadoTableColumnExists() {
-    $connection = \Drupal\Core\Database\Database::getConnection();
+    ChadoSchema::testMode(TRUE);
+    $connection = Database::getConnection();
 
     // Check that chado exists.
     $check_schema = "SELECT true FROM pg_namespace WHERE nspname = :schema";
     $exists = $connection->query($check_schema, [':schema' => $this::$schemaName])
       ->fetchField();
     $this->assertTrue($exists, 'Cannot check chado schema api without chado.
-      Please ensure chado is installed in the schema named "testchado".');
+      Please ensure chado is installed in the schema named "' . $this::$schemaName . '".');
 
     // Initialize ChadoSchema class to test new api.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema(NULL, 'testchado');
+    $chado_schema = new ChadoSchema(NULL, $this::$schemaName);
 
     // 1. Check that the table does not exist.
     $table_name = 'testChadoTableExists_' . uniqid();
@@ -166,14 +237,15 @@ class SchemaAPITest extends BrowserTestBase {
    * @group chado-schema
    */
   public function testChadoSchemaMetdata() {
-    $connection = \Drupal\Core\Database\Database::getConnection();
+    ChadoSchema::testMode(TRUE);
+    $connection = Database::getConnection();
 
     // Check that chado exists.
     $check_schema = "SELECT true FROM pg_namespace WHERE nspname = :schema";
     $exists = $connection->query($check_schema, [':schema' => $this::$schemaName])
       ->fetchField();
     $this->assertTrue($exists, 'Cannot check chado schema api without chado.
-      Please ensure chado is installed in the schema named "testchado".');
+      Please ensure chado is installed in the schema named "' . $this::$schemaName . '".');
 
     // First check the default schema.
     $schema_name = chado_get_schema_name(uniqid());
@@ -206,13 +278,14 @@ class SchemaAPITest extends BrowserTestBase {
    * @group chado-schema
    */
   public function testInitClass() {
+    ChadoSchema::testMode(TRUE);
 
     // Test with no parameters.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema(NULL, $this::$schemaName);
+    $chado_schema = new ChadoSchema(NULL, $this::$schemaName);
     $this->assertNotNull($chado_schema);
 
     // Test with version.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema('1.3', $this::$schemaName);
+    $chado_schema = new ChadoSchema('1.3', $this::$schemaName);
     $this->assertNotNull($chado_schema);
   }
 
@@ -224,12 +297,13 @@ class SchemaAPITest extends BrowserTestBase {
    * @group chado-schema
    */
   public function testGetVersion() {
+    ChadoSchema::testMode(TRUE);
 
     // Generate a fake version.
     $version = rand(100,199) / 100;
 
     // Check version can be retrieved when we set it.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema($version, $this::$schemaName);
+    $chado_schema = new ChadoSchema($version, $this::$schemaName);
     $retrieved_version = $chado_schema->getVersion();
     $this->assertEquals(
       $version,
@@ -249,12 +323,13 @@ class SchemaAPITest extends BrowserTestBase {
    * @group chado-schema
    */
   public function testGetSchemaName() {
+    ChadoSchema::testMode(TRUE);
 
     // Generate a fake version.
     $version = 1.3;
 
     // Check the schema name can be retrieved when we set it.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema($version, $this::$schemaName);
+    $chado_schema = new ChadoSchema($version, $this::$schemaName);
     $retrieved_schema = $chado_schema->getSchemaName();
     $this->assertEquals(
       $this::$schemaName,
@@ -272,16 +347,17 @@ class SchemaAPITest extends BrowserTestBase {
    * @group chado-schema
    */
   public function testGetSchemaDetails() {
-    $connection = \Drupal\Core\Database\Database::getConnection();
+    ChadoSchema::testMode(TRUE);
+    $connection = Database::getConnection();
 
     // Check that chado exists.
     $check_schema = "SELECT true FROM pg_namespace WHERE nspname = :schema";
     $exists = $connection->query($check_schema, [':schema' => $this::$schemaName])
       ->fetchField();
     $this->assertTrue($exists, 'Cannot check chado schema api without chado.
-      Please ensure chado is installed in the schema named "testchado".');
+      Please ensure chado is installed in the schema named "' . $this::$schemaName . '".');
 
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema(1.3, $this::$schemaName);
+    $chado_schema = new ChadoSchema(1.3, $this::$schemaName);
     $schema_details = $chado_schema->getSchemaDetails();
     $this->assertIsArray($schema_details,
       "We were unable to pull out the schema details from the YAML file.");
@@ -314,17 +390,18 @@ class SchemaAPITest extends BrowserTestBase {
    * @group chado-schema
    */
   public function testGetTableNames($version, $known_tables) {
-    $connection = \Drupal\Core\Database\Database::getConnection();
+    ChadoSchema::testMode(TRUE);
+    $connection = Database::getConnection();
 
     // Check that chado exists.
     $check_schema = "SELECT true FROM pg_namespace WHERE nspname = :schema";
     $exists = $connection->query($check_schema, [':schema' => $this::$schemaName])
       ->fetchField();
     $this->assertTrue($exists, 'Cannot check chado schema api without chado.
-      Please ensure chado is installed in the schema named "testchado".');
+      Please ensure chado is installed in the schema named "' . $this::$schemaName . '".');
 
     // Check: Known tables for a given version are returned.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema($version, $this::$schemaName);
+    $chado_schema = new ChadoSchema($version, $this::$schemaName);
     $returned_tables = $chado_schema->getTableNames();
     //print_r($returned_tables);
 
@@ -346,14 +423,15 @@ class SchemaAPITest extends BrowserTestBase {
    * @group chado-schema
    */
   public function testGetTableSchema() {
-    $connection = \Drupal\Core\Database\Database::getConnection();
+    ChadoSchema::testMode(TRUE);
+    $connection = Database::getConnection();
 
     // Check that chado exists.
     $check_schema = "SELECT true FROM pg_namespace WHERE nspname = :schema";
     $exists = $connection->query($check_schema, [':schema' => $this::$schemaName])
       ->fetchField();
     $this->assertTrue($exists, 'Cannot check chado schema api without chado.
-      Please ensure chado is installed in the schema named "testchado".');
+      Please ensure chado is installed in the schema named "' . $this::$schemaName . '".');
 
     // Check all Chado 1.3 tables.
     $version = 1.3;
@@ -414,7 +492,7 @@ class SchemaAPITest extends BrowserTestBase {
     'studyprop', 'studyprop_feature', 'synonym', 'tableinfo', 'treatment'];
 
     // Check: a schema is returned that matches what we expect.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema($version, $this::$schemaName);
+    $chado_schema = new ChadoSchema($version, $this::$schemaName);
     foreach ($dataset as $table_name) {
       $table_schema = $chado_schema->getTableSchema($table_name);
 
@@ -463,11 +541,12 @@ class SchemaAPITest extends BrowserTestBase {
    *  not available yet.
    */
   public function testGetCustomTableSchema($table_name) {
+    ChadoSchema::testMode(TRUE);
 
     $this->markTestSkipped('Custom Table functionality has not been upgraded yet.');
 
     // Check: a schema is returned that matches what we expect.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema(NULL, $this::$schemaName);
+    $chado_schema = new ChadoSchema(NULL, $this::$schemaName);
     $table_schema = $chado_schema->getCustomTableSchema($table_name);
 
     $this->assertNotEmpty(
@@ -498,17 +577,18 @@ class SchemaAPITest extends BrowserTestBase {
    * @group chado-schema
    */
   public function testGetBaseTables($version, $known_tables) {
-    $connection = \Drupal\Core\Database\Database::getConnection();
+    ChadoSchema::testMode(TRUE);
+    $connection = Database::getConnection();
 
     // Check that chado exists.
     $check_schema = "SELECT true FROM pg_namespace WHERE nspname = :schema";
     $exists = $connection->query($check_schema, [':schema' => $this::$schemaName])
       ->fetchField();
     $this->assertTrue($exists, 'Cannot check chado schema api without chado.
-      Please ensure chado is installed in the schema named "testchado".');
+      Please ensure chado is installed in the schema named "' . $this::$schemaName . '".');
 
     // Check: Known base tables for a given version are returned.
-    $chado_schema = new \Drupal\tripal_chado\api\ChadoSchema($version, $this::$schemaName);
+    $chado_schema = new ChadoSchema($version, $this::$schemaName);
     $returned_tables = $chado_schema->getBaseTables();
 
     foreach ($known_tables as $table_name) {

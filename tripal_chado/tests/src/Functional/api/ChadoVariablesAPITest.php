@@ -37,6 +37,7 @@ class ChadoVariablesAPITest extends BrowserTestBase {
    * @group chado-query
    */
   public function testChadoGenerateVariables() {
+    ChadoSchema::testMode(TRUE);
 		$connection = \Drupal\Core\Database\Database::getConnection();
 
 		// Check that chado exists.
