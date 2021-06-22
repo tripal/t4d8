@@ -2063,8 +2063,6 @@ function chado_pager_get_count($element) {
  */
 function chado_schema_get_foreign_key($table_desc, $field, $values, $options = NULL, $chado_schema_name = NULL) {
 
-  $messenger = \Drupal::messenger();
-
   // Set defaults for options. If we don't set defaults then
   // we get memory leaks when we try to access the elements.
   if (!is_array($options)) {
@@ -2093,7 +2091,7 @@ function chado_schema_get_foreign_key($table_desc, $field, $values, $options = N
           . "this hook was implemented in: " . implode(', ',
             module_implements("chado_" . $table_desc['table'] . "_schema")) . ".";
         tripal_report_error('tripal_chado', $message);
-        $messenger->addError(check_plain($message));
+        drupal_set_message(check_plain($message), 'error');
         continue;
       }
       $table = $def['table'];
@@ -2129,7 +2127,7 @@ function chado_schema_get_foreign_key($table_desc, $field, $values, $options = N
        hook_chado_chado_schema_v<version>_<foreign table>(). See
        tripal_chado_chado_v1_2_schema_feature for an example. Chado version: $version");
     tripal_report_error('tripal_chado', TRIPAL_ERROR, $message);
-    $messenger->addError(Html::escape($message));
+    drupal_set_message(Html::escape($message), 'error');
   }
 
   return [];

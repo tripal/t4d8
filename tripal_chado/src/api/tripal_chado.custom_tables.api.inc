@@ -27,9 +27,7 @@
 
 function chado_edit_custom_table($table_id, $table_name, $schema, $skip_if_exists = 1) {
 
-  $messenger = \Drupal::messenger();
-  $transaction = db_transaction();
-
+$transaction = db_transaction();
     try {
         // Create a new record.
         $record = new stdClass();
@@ -45,12 +43,12 @@ function chado_edit_custom_table($table_id, $table_name, $schema, $skip_if_exist
         // Check if the table is suitable for editing (not mview, doesn't exist in tripal_custom_tables table).
         if (!$custom_table) {
            // tripal_report_error('tripal_chado', TRIPAL_ERROR, "This table is not known to be a custom table. Please add it before trying to edit it.",[]);
-            //$messenger->addError("This table is not known to be a custom table. Please use the " . `l('LINK TEXT', 'LINK_LOCATION') . " interface to add it.");
+            //drupal_set_message("This table is not known to be a custom table. Please use the " . `l('LINK TEXT', 'LINK_LOCATION') . " interface to add it.", "error");
             return FALSE;
         }
         else if ($custom_table->mview_id) {
             tripal_report_error('tripal_chado', TRIPAL_ERROR, "Please use the chado_edit_mview() function to edit this custom table as it is a materialized view.", []);
-            $messenger->addError("This custom table is a materialized view. Please use the " . l('Materialized View', 'admin/tripal/storage/chado/mviews') . " interface to edit it.");
+            drupal_set_message("This custom table is a materialized view. Please use the " . l('Materialized View', 'admin/tripal/storage/chado/mviews') . " interface to edit it.", 'error');
             return FALSE;
         }
 
@@ -67,7 +65,7 @@ function chado_edit_custom_table($table_id, $table_name, $schema, $skip_if_exist
             //  that function is deprected in Drupal 8 and removed in Drupal 9
             if (chado_table_exists($custom_table->table_name)) {
                 chado_query("DROP TABLE %s", $custom_table->table_name);
-                $messenger->addStatus(t("Custom Table " . $custom_table->table_name . " dropped"));
+                drupal_set_message(t("Custom Table " . $custom_table->table_name . " dropped"));
             }
         }
 
@@ -338,7 +336,7 @@ function chado_delete_custom_table($table_id) {
         // Don't delete if this table is a materialized view 
         if($table_details->mview_id) {
             tripal_report_error('tripal_chado', TRIPAL_ERROR, "Please use the chado_delete_mview() function to delete this custom table as it is a materialized view. Table not deleted.", []);
-            //$messenger->addError("This custom table is a materialized view. Please use the " . l('Materialized View', 'admin/tripal/storage/chado/mviews') . " interface to delete it.");
+            //drupal_set_message("This custom table is a materialized view. Please use the " . l('Materialized View', 'admin/tripal/storage/chado/mviews') . " interface to delete it.", 'error');
             //return FALSE;
         }
 
