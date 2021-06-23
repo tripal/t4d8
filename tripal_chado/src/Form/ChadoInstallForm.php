@@ -86,6 +86,34 @@ class ChadoInstallForm extends FormBase {
       ];
     }
 
+    // Add a list of existing Chado instances that are not integrated to Tripal.
+    $rows = [];
+    $available = chado_get_available_schemas();
+    foreach($available as $a) {
+      if (!array_key_exists($a['schema_name'], $installs)) {
+        $notes = '';
+        if ($a['has_data']) {
+          $notes .= t('Contains data (@size). ', ['@size' => format_size($a['size'])]);
+        }
+        if ($a['is_test']) {
+          $notes .= t('Unit test database. ');
+        }
+        $rows[] = [
+          $a['schema_name'],
+          $a['version'],
+          $notes,
+        ];
+      }
+    }
+    if (!empty($rows)) {
+      $form['available_chado'] = [
+        '#type' => 'table',
+        '#caption' => t('Other available Chado instance(s) not integrated in Tripal'),
+        '#header' => [t('Schema Name'), t('Chado Version'), t('Notes'), ],
+        '#rows' => $rows,
+      ];
+    }
+
     $form['msg-middle'] = [
       '#type' => 'item',
       '#markup' => t('<br /><p>Use the following drop-down to choose whether you want

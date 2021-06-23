@@ -340,10 +340,71 @@ function chado_get_available_schemas() {
       [':schema' => $schema->name, ':tables[]' => $chado_tables])->fetchField();
     // Do we have a match?
     if (count($chado_tables) == $table_match_count) {
+      
+      // Guess if it contains data.
+      $sql = "
+        SELECT
+          SUM(
+            pg_total_relation_size(
+              quote_ident(schemaname) || '.' || quote_ident(tablename)
+            )
+          )::bigint
+        FROM
+          pg_tables
+        WHERE
+          schemaname = :schema
+        ;";
+      $schema_size = $db->query(
+        $sql,
+        [':schema' => $schema->name]
+      )->fetchField();
+      // Values below 8M mean we have almost no data.
+      $has_data = (8388608 < $schema_size);
+
+      // Guess version.
+      $version = "1.11 or older";
+      $sql = "
+        SELECT true
+        FROM pg_tables
+        WHERE
+          schemaname=:schema
+          AND tablename= 'chadoprop'
+      ;";
+      $prop_exists = \Drupal::database()->query(
+        $sql,
+        [':schema' => $schema->name]
+      )->fetchField();
+
+      if ($prop_exists) {
+        $chado_schema = $schema->name;
+        $sql = "
+          SELECT value
+          FROM $chado_schema.chadoprop cp
+            INNER JOIN $chado_schema.cvterm cvt ON cvt.cvterm_id = cp.type_id
+            INNER JOIN $chado_schema.cv CV ON cvt.cv_id = cv.cv_id
+          WHERE
+            cv.name = 'chado_properties'
+            AND cvt.name = 'version'
+          ;
+        ";
+        $results = \Drupal::database()->query($sql);
+        $v = $results->fetchObject();
+
+        // If we don't have a version in the chadoprop table then it must be
+        // v1.11 or older.
+        if ($v) {
+          $version = $v->value;
+        }
+      }
+
       // Add schema to available Chado schema list.
-      $chado_schemas[$schema->name] = [];
-      //+FIXME: add info such as Chado version, if it is already installed in
-      // Tripal, if it contains data.
+      $chado_schemas[$schema->name] = [
+        'schema_name' => $schema->name,
+        'version'  => $version,
+        'is_test'  => (0 === strpos($schema->name, 'test')),
+        'has_data' => $has_data,
+        'size'     => $schema_size,
+      ];
     }
   }
 
@@ -437,14 +498,10 @@ function chado_get_version($exact = FALSE, $warn_if_unsupported = FALSE, $chado_
     $chado_schema = chado_get_schema_name('chado');
   }
 
-  // Schema name must be all lowercase with no special characters with the
-  // exception of underscores and diacritical marks (which can be uppercase).
-  // ref.: https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
-  // It should not contain any space and must not being with "pg_".
-  if ((preg_match('/^[a-z_\\xA0-\\xFF][a-z_\\xA0-\\xFF0-9]*$/', $chado_schema) === 0)
-      || (0 === strpos($chado_schema, 'pg_'))) {
-    \Drupal::logger('tripal_chado')->error(
-      "chado_get_version: The schema name must not begin with a number or \"pg_\" and only contain lower case letters, numbers, underscores and diacritical marks.");
+  // Check schema name.
+  $schema_issue = \Drupal\tripal_chado\api\ChadoSchema::isInvalidSchemaName($chado_schema);
+  if ($schema_issue) {
+    \Drupal::logger('tripal_chado')->error($schema_issue);
     return FALSE;
   }
 
