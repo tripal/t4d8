@@ -307,6 +307,50 @@ function chado_get_installed_schemas() {
 }
 
 /**
+ * List all available chado schema.
+ *
+ * @return array
+ *   An array of data on available Chado schema keyed by schema names.
+ */
+function chado_get_available_schemas() {
+  $chado_schemas = [];
+
+  $db = \Drupal::database();
+
+  // First we get a list of available schemas excluding obvious non-chado
+  // schemas.
+  // Here we did not escape schemata table using curly braces because it is a
+  // PostgreSQL system table (information_schema) and it should not be processed
+  // by Drupal.
+  $sql ="
+    SELECT schema_name AS \"name\"
+    FROM information_schema.schemata
+    WHERE
+      schema_name NOT IN ('information_schema', 'public', 'pg_catalog');";
+  $schemas = $db->query($sql)->fetchAll();
+  
+  // Typical Chado tables.
+  $chado_tables = ['db', 'dbxref', 'cv', 'cvterm'];
+
+  foreach ($schemas as $schema) {
+    // Check if the schema contains typical Chado tables by counting them.
+    $sql = "SELECT COUNT(1) FROM pg_tables
+      WHERE schemaname=:schema AND tablename IN (:tables[])";
+    $table_match_count = $db->query($sql,
+      [':schema' => $schema->name, ':tables[]' => $chado_tables])->fetchField();
+    // Do we have a match?
+    if (count($chado_tables) == $table_match_count) {
+      // Add schema to available Chado schema list.
+      $chado_schemas[$schema->name] = [];
+      //+FIXME: add info such as Chado version, if it is already installed in
+      // Tripal, if it contains data.
+    }
+  }
+
+  return $chado_schemas;
+}
+
+/**
  * Check that the Chado schema exists within the local database
  *
  * @param bool $force_recheck
