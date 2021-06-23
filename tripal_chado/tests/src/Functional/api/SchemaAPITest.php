@@ -29,7 +29,7 @@ class SchemaAPITest extends BrowserTestBase {
    * Schema to do testing out of.
    * @var string
    */
-  protected static $schemaName = 'testchado';
+  protected static $schemaName = ChadoSchema::TEST_SCHEMA_NAME;
 
   /**
    * Tests ChadoSchema static functions.

@@ -9,7 +9,7 @@ use Drupal\tripal\Services\TripalJob;
  */
 function tripal_chado_load_drush_submit($action, $chado_schema = 'chado') {
 
-  if ($action == 'Install Chado v1.3') {
+  if ($action == \Drupal\tripal_chado\Form\ChadoInstallForm::INSTALL_13_ACTION) {
     $installer = \Drupal::service('tripal_chado.chadoInstaller');
     $installer->setSchema($chado_schema);
     $success = $installer->install(1.3);
@@ -26,7 +26,7 @@ function tripal_chado_load_drush_submit($action, $chado_schema = 'chado') {
  */
 function tripal_chado_install_chado($action, $chado_schema = 'chado', $job = NULL) {
 
-  if ($action == 'Install Chado v1.3') {
+  if ($action == \Drupal\tripal_chado\Form\ChadoInstallForm::INSTALL_13_ACTION) {
     $installer = \Drupal::service('tripal_chado.chadoInstaller');
     $installer->setSchema($chado_schema);
     if ($job) {
@@ -37,6 +37,24 @@ function tripal_chado_install_chado($action, $chado_schema = 'chado', $job = NUL
   else {
     \Drupal::logger('tripal_chado')->error("NOT SUPPORTED: " . $action);
   }
+}
+
+/**
+ * Import Chado Schema.
+ *
+ * @ingroup tripal_chado
+ */
+function tripal_chado_import_chado($chado_schema = 'chado', $job = NULL) {
+  \Drupal::logger('tripal_chado')->error("NOT IMPLEMENTED YET");
+}
+
+/**
+ * Clone Chado Schema.
+ *
+ * @ingroup tripal_chado
+ */
+function tripal_chado_clone_chado($source_chado_schema, $target_chado_schema, $job = NULL) {
+  \Drupal::logger('tripal_chado')->error("NOT IMPLEMENTED YET");
 }
 
 /**

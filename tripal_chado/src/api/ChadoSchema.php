@@ -49,6 +49,12 @@ use Drupal\Core\Database\Database;
 class ChadoSchema {
 
   /**
+   * Reserved schema name of the Chado schema used for testing.
+   */
+  public const TEST_SCHEMA_NAME = 'testchado';
+
+
+  /**
    * @var string
    *   The current version for this site. E.g. "1.3".
    */
@@ -191,11 +197,11 @@ class ChadoSchema {
         'The "public" schema is reseved to Drupal and should not be used for Chado.'
       );
     }
-    elseif (('testchado' == $schema_name) && !ChadoSchema::$test_mode) {
+    elseif ((TEST_SCHEMA_NAME == $schema_name) && !ChadoSchema::$test_mode) {
       // @todo: Should we protect the "test" prefix and not just "testchado"?
       // Value of \Drupal\Tests\tripal_chado::$schemaName.
       $issue = t(
-        'The "testchado" schema name is reseved for Tripal unit tests.'
+        'The "' . TEST_SCHEMA_NAME . '" schema name is reseved for Tripal unit tests.'
       );
     }
     elseif (63 < strlen($schema_name)) {
