@@ -37,6 +37,7 @@ class ChadoDbAPITest extends BrowserTestBase {
    * @group chado-db
    */
   public function testDB() {
+    ChadoSchema::testMode(TRUE);
 
 		$this->markTestIncomplete('This test is causing errors in the new environment.');
 
@@ -96,6 +97,7 @@ class ChadoDbAPITest extends BrowserTestBase {
    * @group chado-db
    */
   public function testDbxref() {
+    ChadoSchema::testMode(TRUE);
 
 		$this->markTestIncomplete('This test is causing errors in the new environment.');
 

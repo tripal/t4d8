@@ -69,10 +69,9 @@ class bulkPgSchemaInstaller {
    */
   public function setSchema($schema_name) {
 
-    // Schema name must be all lowercase with no special characters.
-    // It should also be a single word.
-    if (preg_match('/^[a-z][a-z0-9]+$/', $schema_name) === 0) {
-      $this->logger->error('The schema name must be a single word containing only lower case letters or numbers and cannot begin with a number.');
+    
+    if ($schema_issue = \Drupal\tripal_chado\api\ChadoSchema::isInvalidSchemaName($schema_name)) {
+      $this->logger->error($schema_issue);
       return FALSE;
     }
     else {

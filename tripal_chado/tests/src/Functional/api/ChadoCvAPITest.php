@@ -37,6 +37,7 @@ class ChadoCvAPITest extends BrowserTestBase {
    * @group chado-cv
    */
   public function testcv() {
+    ChadoSchema::testMode(TRUE);
     if (ChadoSchema::schemaExists($this::$schemaName) == TRUE) {
       // INSERT.
       // chado_insert_cv().
@@ -94,6 +95,7 @@ class ChadoCvAPITest extends BrowserTestBase {
    * @group chado-cv
    */
   public function testcvterm() {
+    ChadoSchema::testMode(TRUE);
     if (ChadoSchema::schemaExists($this::$schemaName) == TRUE) {
       // INSERT.
       // chado_insert_cvterm().

@@ -37,6 +37,7 @@ class ChadoQueryAPITest extends BrowserTestBase {
    * @group chado-query
    */
   public function testChadoQuery() {
+    ChadoSchema::testMode(TRUE);
 		$connection = \Drupal\Core\Database\Database::getConnection();
 
 		// Check that chado exists.
@@ -131,6 +132,7 @@ class ChadoQueryAPITest extends BrowserTestBase {
    * @group chado-query
    */
   public function testChadoQueryHelpers() {
+    ChadoSchema::testMode(TRUE);
 		$connection = \Drupal\Core\Database\Database::getConnection();
 
 		// Check that chado exists.
@@ -200,6 +202,7 @@ class ChadoQueryAPITest extends BrowserTestBase {
    * @group chado-query
    */
   public function testChadoTableMaxRank() {
+    ChadoSchema::testMode(TRUE);
 		$connection = \Drupal\Core\Database\Database::getConnection();
     $this->markTestIncomplete('This test has not been implemented yet.');
   }
@@ -211,6 +214,7 @@ class ChadoQueryAPITest extends BrowserTestBase {
    * @group chado-query
    */
   public function testChadoSetActive() {
+    ChadoSchema::testMode(TRUE);
 		$connection = \Drupal\Core\Database\Database::getConnection();
     $this->markTestIncomplete('This test has not been implemented yet.');
   }
@@ -222,6 +226,7 @@ class ChadoQueryAPITest extends BrowserTestBase {
    * @group chado-query
    */
   public function testChadoPagerQuery() {
+    ChadoSchema::testMode(TRUE);
 		$connection = \Drupal\Core\Database\Database::getConnection();
     $this->markTestIncomplete('This test has not been implemented yet.');
   }
@@ -233,6 +238,7 @@ class ChadoQueryAPITest extends BrowserTestBase {
    * @group chado-query
    */
   public function testChadoSchemaGetFK() {
+    ChadoSchema::testMode(TRUE);
 		$connection = \Drupal\Core\Database\Database::getConnection();
     $this->markTestIncomplete('This test has not been implemented yet.');
   }

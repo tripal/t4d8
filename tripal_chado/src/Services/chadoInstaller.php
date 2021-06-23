@@ -44,10 +44,11 @@ class chadoInstaller extends bulkPgSchemaInstaller {
       return FALSE;
     }
     // Check the schema name is valid.
-    if (preg_match('/^[a-z][a-z0-9]+$/', $chado_schema) === 0) {
+    $schema_issue = \Drupal\tripal_chado\api\ChadoSchema::isInvalidSchemaName($chado_schema);
+    if ($schema_issue) {
       // Schema name must be a single word containing only lower case letters
       // or numbers and cannot begin with a number.
-      $this->logger->error("Schema name must be a single alphanumeric word beginning with a number and all lowercase.");
+      $this->logger->error($schema_issue);
       return FALSE;
     }
 
