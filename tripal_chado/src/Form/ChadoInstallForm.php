@@ -56,15 +56,27 @@ class ChadoInstallForm extends FormBase {
     if (array_key_exists('action_to_do', $values)) {
       if ($values['action_to_do'] == INSTALL_13_ACTION) {
         \Drupal::messenger()->addMessage(
-            'Please note: if Chado is already installed it will
-            be removed and recreated and all data will be lost. If this is
-            desired or if this is the first time Chado has been installed
-            you can ignore this issue.', 'warning');
+          t('Please note: if Chado is already installed it will
+          be removed and recreated and all data will be lost. If this is
+          desired or if this is the first time Chado has been installed
+          you can ignore this issue.'),
+          'warning'
+        );
       }
       elseif ($values['action_to_do'] == DROP_ACTION) {
         \Drupal::messenger()->addMessage(
-            'Please note: all data will be lost in the schema you choose to
-            remove. This is not reversible.', 'warning');
+          t('Please note: all data will be lost in the schema you choose to
+          remove. This is not reversible.'),
+          'warning'
+        );
+      }
+      elseif ($values['action_to_do'] == CLONE_ACTION) {
+        \Drupal::messenger()->addMessage(
+            t('For duplicating a schema, select the schema to duplicate first and
+            then specify a new schema name as target int the "Advanced Options"
+            section.'),
+            'status'
+        );
       }
     }
 
@@ -86,30 +98,40 @@ class ChadoInstallForm extends FormBase {
     // Now that we support multiple chado instances, we need to list all the
     // currently installed ones here since they may be different versions.
     // @upgrade currently we have no way to pull out all chado installs.
+    
+    // First table displays installed/registered Chado schema (integrated with
+    // Tripal).
+    // Note: for some actions, this table can use a different form item
+    // identifirer and/or can be fusionned with the next table.
     $rows = [];
-    $options = [];
     $installs = chado_get_installed_schemas();
     foreach($installs as $i) {
       $rows[$i->schema_name] = [
-        $i->schema_name,
-        $i->version,
-        \Drupal::service('date.formatter')->format($i->created),
-        \Drupal::service('date.formatter')->format($i->updated)
+        'schema_name' => $i->schema_name,
+        'version'     => $i->version,
+        'created'     => \Drupal::service('date.formatter')->format($i->created),
+        'updated'     => \Drupal::service('date.formatter')->format($i->updated)
       ];
-      $options[] = $i->schema_name;
     }
+
     if (!empty($rows)) {
       ksort($rows);
-      $form['current_version'] = [
+      $form['integrated_chado'] = [
         '#type' => 'table',
         '#caption' => t('Installed version(s) of Chado'),
-        '#header' => [t('Schema Name'), t('Chado Version'), t('Created'), t('Updated')],
+        '#header' => [
+          'schema_name' => t('Schema Name'),
+          'version'     => t('Chado Version'),
+          'created'     => t('Created'),
+          'updated'     => t('Updated'),
+        ],
         '#rows' => $rows,
       ];
       if ((CLONE_ACTION == $form_state->getValue('action_to_do'))
           || (DROP_ACTION == $form_state->getValue('action_to_do'))) {
-        $form['current_version'] = array_merge(
-          $form['current_version'],
+        // Change the form identifier from "integrated_chado" to "schema_name".
+        $form['schema_name'] = array_merge(
+          $form['integrated_chado'],
           [
             '#type' => 'tableselect',
             '#options' => $rows,
@@ -118,10 +140,11 @@ class ChadoInstallForm extends FormBase {
             '#default_value' => array_key_first($rows),
           ]
         );
+        unset($form['integrated_chado']);
       }
     }
     else {
-      $form['current_version'] = [
+      $form['integrated_chado'] = [
         '#type' => 'item',
         '#markup' => t('<div class="messages messages--warning">
             <h2>Chado Not Installed</h2>
@@ -131,14 +154,15 @@ class ChadoInstallForm extends FormBase {
       ];
     }
 
-    // Add a list of existing Chado instances that are not integrated to Tripal.
+    // Second table displays existing Chado instances that are not integrated
+    // into Tripal.
+    // Note: for some actions, this table can use a different form item
+    // identifirer and/or can be fusionned with the previous table.
     $rows = [];
-    $options = [];
     $available = chado_get_available_schemas();
     $not_installed_schemas = 0;
-    foreach($available as $a) {
-      if ((!array_key_exists($a['schema_name'], $installs))
-          && (\Drupal\tripal_chado\api\ChadoSchema::TEST_SCHEMA_NAME != $a['schema_name'])) {
+    foreach ($available as $a) {
+      if (!array_key_exists($a['schema_name'], $installs)) {
         $notes = '';
         if ($a['has_data']) {
           $notes .= t('Contains data (@size). ', ['@size' => format_size($a['size'])]);
@@ -147,11 +171,10 @@ class ChadoInstallForm extends FormBase {
           $notes .= t('Unit test database. ');
         }
         $rows[$a['schema_name']] = [
-          $a['schema_name'],
-          $a['version'],
-          $notes,
+          'schema_name' => $a['schema_name'],
+          'version'     => $a['version'],
+          'notes'       => $notes,
         ];
-        $options[] = $a['schema_name'];
         ++$not_installed_schemas;
       }
     }
@@ -160,25 +183,87 @@ class ChadoInstallForm extends FormBase {
       $form['available_chado'] = [
         '#type' => 'table',
         '#caption' => t('Other available Chado instance(s) not integrated in Tripal'),
-        '#header' => [t('Schema Name'), t('Chado Version'), t('Notes'), ],
+        '#header' => [
+          'schema_name' => t('Schema Name'),
+          'version'     => t('Chado Version'),
+          'notes'       => t('Notes'),
+        ],
         '#rows' => $rows,
       ];
       if (IMPORT_ACTION == $form_state->getValue('action_to_do')) {
-        $form['available_chado'] = array_merge($form['available_chado'], [
-          '#type' => 'tableselect',
-          '#options' => $rows,
-          '#multiple' => FALSE,
-          '#js_select' => FALSE,
-          '#default_value' => array_key_first($rows),
-        ]);
+        // Change the form identifier from "available_chado" to "schema_name".
+        $form['schema_name'] = array_merge(
+          $form['available_chado'],
+          [
+            '#type' => 'tableselect',
+            '#options' => $rows,
+            '#multiple' => FALSE,
+            '#js_select' => FALSE,
+            '#default_value' => array_key_first($rows),
+          ]
+        );
+        unset($form['available_chado']);
       }
+      elseif ((DROP_ACTION == $form_state->getValue('action_to_do'))
+              || (CLONE_ACTION == $form_state->getValue('action_to_do'))) {
+        if (array_key_exists('schema_name', $form)) {
+          // Merge the 2 tables in one.
+          $form['schema_name']['#caption'] = t('Chado instance(s)');
+          $form['schema_name']['#header']['notes'] = t('Notes');
+
+          // Adjust columns.
+          foreach ($form['schema_name']['#options'] as $schema_name => $data) {
+            // Add notes.
+            $form['schema_name']['#options'][$schema_name]['notes'] = '';
+          }
+          foreach ($rows as $schema_name => $data) {
+            // Add dates.
+            $rows[$schema_name]['created'] = '';
+            $rows[$schema_name]['updated'] = '';
+          }
+          $form['schema_name']['#options'] = array_merge(
+            $form['schema_name']['#options'],
+            $rows,
+          );
+          unset($form['available_chado']);
+        }
+        else {
+          // Change the form identifier from "available_chado" to "schema_name".
+          $form['schema_name'] = array_merge(
+            $form['available_chado'],
+            [
+              '#type' => 'tableselect',
+              '#options' => $rows,
+              '#multiple' => FALSE,
+              '#js_select' => FALSE,
+              '#default_value' => array_key_first($rows),
+            ]
+          );
+          unset($form['available_chado']);
+        }
+      }
+    }
+
+    $form['cloning'] = [
+      '#type' => 'container',
+    ];
+    $form['cloning']['target_schema_name'] = [
+      '#type' => 'textfield',
+      '#title' => t('Target Chado Schema Name'),
+      '#required' => TRUE,
+      '#description' => t('The name of the schema to copy selected Chado to.'),
+      '#default_value' => 'chado_copy',
+      '#attributes' => ['autocomplete' => 'off'],
+    ];
+    if (!$form_state->getValue('action_to_do')
+        || (CLONE_ACTION != $form_state->getValue('action_to_do'))) {
+      $form['cloning']['#attributes']['class'] = ['js-hide'];
     }
 
     $form['msg-middle'] = [
       '#type' => 'item',
-      '#markup' => t('<br /><p>Use the following drop-down to choose whether you want
-      to install or upgrade Chado. You can use the advanced options to change
-      the schema name for multi-chado install.</p>'),
+      '#markup' => t('<br /><p>Use the following drop-down to select the action
+      to perform.</p>'),
     ];
 
     $options = [
@@ -200,7 +285,7 @@ class ChadoInstallForm extends FormBase {
       '#title' => 'Installation/Upgrade Action',
       '#options' => $options,
       '#required' => TRUE,
-      "#empty_option" => t('- Select an action to perform -'),
+      '#empty_option' => t('- Select an action to perform -'),
       '#ajax' => [
         'callback' => '::ajaxFormVersionUpdate',
         'wrapper' => 'tripal_chado_load_form',
@@ -208,6 +293,7 @@ class ChadoInstallForm extends FormBase {
         'method' => 'replace',
         'disable-refocus' => FALSE,
       ],
+      '#attributes' => ['autocomplete' => 'off'],
     ];
 
     // Add some information to admin regarding chado installation.
@@ -226,8 +312,7 @@ class ChadoInstallForm extends FormBase {
     each chado instance indicating a different schema name each time.
     <strong>Each chado instance must have a unique name.</strong>');
     if ((!$form_state->getValue('action_to_do'))
-        || (INSTALL_13_ACTION == $form_state->getValue('action_to_do'))
-        || (CLONE_ACTION == $form_state->getValue('action_to_do'))) {
+        || (INSTALL_13_ACTION == $form_state->getValue('action_to_do'))) {
       $form['advanced'] = [
         '#type' => 'details',
         '#title' => t('Advanced Options'),
@@ -241,6 +326,7 @@ class ChadoInstallForm extends FormBase {
         '#required' => TRUE,
         '#description' => t('The name of the schema to install chado in.'),
         '#default_value' => 'chado',
+        '#attributes' => ['autocomplete' => 'off'],
       ];
     }
 
@@ -270,15 +356,18 @@ class ChadoInstallForm extends FormBase {
     // @todo add a hook for modules to add in to the prepare or install processes.
 
     // Get schema name from the first used field.
-    $schema_name =
-      $values['schema_name']
-      ?: $values['current_version']
-      ?: $values['available_chado']
-    ;
-    $target_schema_name = $values['current_version'];
-    if ((CLONE_ACTION == $form_state->getValue('action_to_do'))
-      && (!$target_schema_name)) {
-      $form_state->setErrorByName('current_version', t('You must select an existing source schema to clone.'));
+    $schema_name = $values['schema_name'];
+    $target_schema_name = $values['target_schema_name'];
+    if (CLONE_ACTION == $form_state->getValue('action_to_do')) {
+      if (!$target_schema_name) {
+        $form_state->setErrorByName('target_schema_name', t('You must provide a target schema for duplication.'));
+      }
+      else {
+        $schema_issue = \Drupal\tripal_chado\api\ChadoSchema::isInvalidSchemaName($target_schema_name);
+        if ($schema_issue) {
+          $form_state->setErrorByName('target_schema_name', $schema_issue);
+        }
+      }
     }
     // Check provided schema name.
     $schema_issue = \Drupal\tripal_chado\api\ChadoSchema::isInvalidSchemaName($schema_name);
@@ -295,11 +384,8 @@ class ChadoInstallForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
     $action_to_do = $form_state->getValue('action_to_do');
-    $schema_name =
-      $form_state->getValue('schema_name')
-      ?: $form_state->getValue('current_version')
-      ?: $form_state->getValue('available_chado')
-    ;
+    $schema_name = $form_state->getValue('schema_name');
+    $target_schema_name = $form_state->getValue('target_schema_name');
     $args = [$action_to_do];
 
     $current_user = \Drupal::currentUser();
@@ -316,7 +402,7 @@ class ChadoInstallForm extends FormBase {
             'tripal_chado_import_schema', $args, $current_user->id(), 10);
         break;
       case CLONE_ACTION:
-        $args = [$schema_name];
+        $args = [$schema_name, $target_schema_name];
         tripal_add_job($action_to_do, 'tripal_chado',
             'tripal_chado_clone_schema', $args, $current_user->id(), 10);
         break;
