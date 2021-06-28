@@ -244,6 +244,9 @@ class ChadoInstallForm extends FormBase {
       }
     }
 
+    // The "cloning" container is used to allow the form to provide all the
+    // necessary fields even when there is a problem with Javascript on the
+    // client side.
     $form['cloning'] = [
       '#type' => 'container',
     ];
@@ -255,6 +258,7 @@ class ChadoInstallForm extends FormBase {
       '#default_value' => 'chado_copy',
       '#attributes' => ['autocomplete' => 'off'],
     ];
+    // Only hide the field if an action has been selected and it's not cloning.
     if (!$form_state->getValue('action_to_do')
         || (CLONE_ACTION != $form_state->getValue('action_to_do'))) {
       $form['cloning']['#attributes']['class'] = ['js-hide'];
@@ -286,6 +290,8 @@ class ChadoInstallForm extends FormBase {
       '#options' => $options,
       '#required' => TRUE,
       '#empty_option' => t('- Select an action to perform -'),
+      // The ajax reloading is used to update the form and display the
+      // appropriate help messages according to user action selection.
       '#ajax' => [
         'callback' => '::ajaxFormVersionUpdate',
         'wrapper' => 'tripal_chado_load_form',
