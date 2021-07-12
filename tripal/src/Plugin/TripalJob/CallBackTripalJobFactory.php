@@ -27,14 +27,16 @@ interface CallBackTripalJobFactory extends TripalJobFactoryBase {
    *     for a given file.
    *   - user: The name of the user that created this job.
    */
-  public function create($definition) {
-    return CallBackTripalJob::create(
+  public function create($definition,$executor) {
+    $ret = CallBackTripalJob::create(
       $definition["callback"]
       ,$definition["arguments"]
       ,$definition["includes"]
       ,$definition["user"]
       ,$this
     );
+    $executor->addJob($ret);
+    return $ret
   }
 
   /**

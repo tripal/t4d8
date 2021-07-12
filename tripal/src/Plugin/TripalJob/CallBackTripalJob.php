@@ -10,6 +10,19 @@ use Drupal\tripal\Plugin\TripalJob\TripalJobBase;
 interface CallbackTripalJob implements TripalJobBase {
 
   /**
+   * Get the current tripal job.
+   *
+   * Get the instane of the current callback tripal job that called the callback function currently
+   * running.
+   *
+   * @return \Drupal\tripal\Plugin\TripalJob\CallbackTripalJob
+   *   The current callback tripal job.
+   */
+  public static function instance($progress) {
+    return self::$_instance;
+  }
+
+  /**
    * Creates a new callback job.
    *
    * Creates a new callback tripal job with the given callback function, arguments, includes, user,
@@ -46,6 +59,7 @@ interface CallbackTripalJob implements TripalJobBase {
     $ret->_callback = $callback
     $ret->_arguments = $arguments
     $ret->_includes = $includes
+    $ret->_errorMessage = ""
     $sql = $database->insert("callback_tripal_jobs")->fields(
       [
         "status" => $this->getStatus()
@@ -56,6 +70,7 @@ interface CallbackTripalJob implements TripalJobBase {
         ,"callback" => $ret->_callback
         ,"arguments" => serialize($ret->_arguments)
         ,"includes" => serialize($ret->_includes)
+        ,"error_msg" => $this->_errorMessage
       ]
     )
     $ret->setJobID($sql->execute());
@@ -86,7 +101,7 @@ interface CallbackTripalJob implements TripalJobBase {
     if (!$job) {
       return NULL;
     }
-    return loadFromObject($job,$factory);
+    return self::loadFromObject($job,$factory);
   }
 
   /**
@@ -115,6 +130,7 @@ interface CallbackTripalJob implements TripalJobBase {
     $ret->_callback = $job->callback;
     $ret->_arguments = unserialize($job->arguments);
     $ret->_includes = unserialize($job->includes);
+    $ret->_errorMessage = $job->error_msg;
     return $ret;
   }
 
@@ -135,10 +151,31 @@ interface CallbackTripalJob implements TripalJobBase {
    */
   public function execute() {
     $this->setStartTime(time());
-    $this->setStatus("running");
+    $this->setStatus("Running");
     $this->updateDB();
+    try {
+      if (is_array($this->job->includes)) {
+        foreach ($this->_includes as $path) {
+          if ($path) {
+            require_once $path;
+          }
+        }
+      }
+      self::$_instance = $this;
+      call_user_func_array($this->_callback,$this->_arguments);
+      self::$_instance = Null;
+      $this->setEndTime(time());
+      $this->setStatus("Completed");
+      $this->setProgress(100);
+      $this->updateDB();
+    } catch (\Exception $e) {
+      $this->setEndTime(time());
+      $this->setStatus("Error");
+      $this->_errorMessage = $e->getMessage();
+      $this->updateDB();
+    }
   }
-
+ 
   /**
    * Updates to database.
    *
@@ -158,6 +195,7 @@ interface CallbackTripalJob implements TripalJobBase {
         ,"callback" => $this->_callback
         ,"arguments" => serialize($this->_arguments)
         ,"includes" => serialize($this->_includes)
+        ,"error_msg" => $this->_errorMessage
       ]
     );
     $u->condition("id",$this->_jobID);
@@ -178,4 +216,13 @@ interface CallbackTripalJob implements TripalJobBase {
    * This plugin's include path array.
    */
   private $_includes;
+
+  /*
+   * This plugin's error message string.
+   */
+  private $_errorMessage;
+  /*
+   * The currently active plugin instance.
+   */
+  private static $_instance = Null;
 }

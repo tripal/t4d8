@@ -17,10 +17,14 @@ interface TripalJobFactoryInterface extends PluginInspectionInterface {
    * @param array $definition
    *   The definition which contains all data required to create a new Tripal
    *   Job.
+   *
+   * @param \Drupal\tripal\Plugin\TripalExecutor\TripalExecutorInterface $executor
+   *   The tripal executor that is responsible for running the newly created tripal job.
+   *
    * @return \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
    *   An instance of a new Tripal Job created from the given definition.
    */
-  public function create($definition);
+  public function create($definition,$executor);
 
   /**
    * Loads a Tripal Job.
@@ -29,6 +33,7 @@ interface TripalJobFactoryInterface extends PluginInspectionInterface {
    *
    * @param int $id
    *   A unique ID of an already created Tripal Job.
+   *
    * @return \Drupal\tripal\Plugin\TripalJob\TripalJobInterface
    *   An instance of an already created Tripal Job.
    */
@@ -44,6 +49,7 @@ interface TripalJobFactoryInterface extends PluginInspectionInterface {
    * @param string $status
    *   The status of TripalJobInterface instances returned or an empty string to return all
    *   instances.
+   *
    * @return array
    *   An array of TripalJobInterface instances.
    */
