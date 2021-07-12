@@ -367,10 +367,10 @@ function chado_get_available_schemas() {
         SELECT true
         FROM pg_tables
         WHERE
-          schemaname=:schema
-          AND tablename= 'chadoprop'
+          schemaname = :schema
+          AND tablename = 'chadoprop'
       ;";
-      $prop_exists = \Drupal::database()->query(
+      $prop_exists = $db->query(
         $sql,
         [':schema' => $schema->name]
       )->fetchField();
@@ -387,7 +387,7 @@ function chado_get_available_schemas() {
             AND cvt.name = 'version'
           ;
         ";
-        $results = \Drupal::database()->query($sql);
+        $results = $db->query($sql);
         $v = $results->fetchObject();
 
         // If we don't have a version in the chadoprop table then it must be

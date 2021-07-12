@@ -1,3 +1,9 @@
 services:
+    tripal_chado.chadoCloner:
+        class: Drupal\tripal_chado\Services\chadoCloner
     tripal_chado.chadoInstaller:
         class: Drupal\tripal_chado\Services\chadoInstaller
+    tripal_chado.chadoIntegrator:
+        class: Drupal\tripal_chado\Services\chadoIntegrator
+    tripal_chado.chadoUpdater:
+        class: Drupal\tripal_chado\Services\chadoUpgrader

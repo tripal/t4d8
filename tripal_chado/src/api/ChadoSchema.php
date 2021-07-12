@@ -197,11 +197,11 @@ class ChadoSchema {
         'The "public" schema is reseved to Drupal and should not be used for Chado.'
       );
     }
-    elseif ((TEST_SCHEMA_NAME == $schema_name) && !ChadoSchema::$test_mode) {
+    elseif ((self::TEST_SCHEMA_NAME == $schema_name) && !ChadoSchema::$test_mode) {
       // @todo: Should we protect the "test" prefix and not just "testchado"?
       // Value of \Drupal\Tests\tripal_chado::$schemaName.
       $issue = t(
-        'The "' . TEST_SCHEMA_NAME . '" schema name is reseved for Tripal unit tests.'
+        'The "' . self::TEST_SCHEMA_NAME . '" schema name is reseved for Tripal unit tests.'
       );
     }
     elseif (63 < strlen($schema_name)) {

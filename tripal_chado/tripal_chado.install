@@ -7,6 +7,20 @@
 use \Drupal\Core\Database\Database;
 
 /**
+ * Implements hook_install().
+ */
+function tripal_chado_install($is_syncing) {
+  tripal_chado_install_cloner();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function tripal_chado_uninstall() {
+  tripal_chado_uninstall_cloner();
+}
+
+/**
  * Implementation of hook_schema().
  *
  * @ingroup tripal_chado
@@ -200,4 +214,101 @@ function tripal_chado_tripal_custom_tables_schema() {
       ),
     ),
   ];
+}
+
+/**
+ * Run an SQL file.
+ *
+ * @param string $sql_file
+ *   Path to an SQL file.
+ *
+ * @return resource
+ *   A query result resource on success or false on failure. 
+ */
+function tripal_chado_install_run_sql($sql_file) {
+  // Get the default database.
+  $logger = \Drupal::service('tripal.logger');
+  $database = \Drupal::database();
+  $db_info = $database->getConnectionOptions();
+  $dsn = sprintf(
+    'dbname=%s host=%s port=%s user=%s password=%s',
+    $db_info['database'],
+    $db_info['host'],
+    $db_info['port'],
+    $db_info['username'],
+    $db_info['password']
+  );
+
+  // Open a PHP connection to the database
+  // since Drupal restricts us to a single statement per exec.
+  $pgconnection = pg_connect($dsn);
+  if (!$pgconnection) {
+    $logger->error(
+      "Unable to connect to database using '$dsn' connection string.\n"
+    );
+    pg_close($pgconnection);
+    throw new Exception('Failed to get a direct connection to the database.');
+  }
+
+  // Retrieve the SQL file.
+  $sql = file_get_contents($sql_file);
+  if (!$sql) {
+    $logger->error(
+      "Unable to read '$sql_file' file content.\n"
+    );
+    pg_close($pgconnection);
+    throw new Exception("Failed to get '$sql_file' file content.");
+  }
+  $result = pg_query($pgconnection, $sql);
+  pg_close($pgconnection);
+
+  return $result;
+}
+
+/**
+ * Adds schema cloning functionality.
+ */
+function tripal_chado_install_cloner() {
+  $logger = \Drupal::service('tripal.logger');
+  
+  $sql_cloner_path =
+    drupal_get_path('module', 'tripal_chado')
+    . '/chado_schema/pg-clone-schema/clone_schema.sql'
+  ;
+  $result = tripal_chado_install_run_sql($sql_cloner_path);
+
+  if (!$result) {
+    $logger->error(t("Unable to install SQL cloner functions.\n") . pg_last_error());
+    throw new Exception("Failed to install SQL cloner functions ($sql_cloner_path).\n" . pg_last_error());
+  }
+}
+
+/**
+ * Remove schema cloning functionality.
+ */
+function tripal_chado_uninstall_cloner() {
+  $logger = \Drupal::service('tripal.logger');
+  $sql_uninstall_cloner_path =
+    drupal_get_path('module', 'tripal_chado')
+    . '/chado_schema/pg-clone-schema/clone_schema_uninstall.sql'
+  ;
+  $result = tripal_chado_install_run_sql($sql_uninstall_cloner_path);
+
+  if (!$result) {
+    $logger->error(t("Unable to uninstall SQL cloner functions.\n") . pg_last_error());
+    throw new Exception("Failed to uninstall SQL cloner functions ($sql_uninstall_cloner_path).\n" . pg_last_error());
+  }
+}
+
+/**
+ * Adds schema cloning functionality.
+ */
+function tripal_chado_update_9101() {
+  try {
+    tripal_chado_install_cloner();
+  }
+  catch (Exception $e) {
+    // Rethrow exception as UpdateException.
+    throw new Drupal\Core\Utility\UpdateException($e);
+  }
 }

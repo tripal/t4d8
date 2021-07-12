@@ -24,9 +24,13 @@ class ChadoInstallForm extends FormBase {
    */
   public const INSTALL_13_ACTION = 'Install Chado v1.3';
   /**
-   * Import Chado action identifier.
+   * Upgrade Chado action identifier.
    */
-  public const IMPORT_ACTION     = 'Import Chado Schema';
+  public const UPGRADE_13_ACTION = 'Upgrade Chado Schema to v1.3';
+  /**
+   * Integrate Chado action identifier.
+   */
+  public const INTEGRATE_ACTION     = 'Integrate Chado Schema';
   /**
    * Clone Chado action identifier.
    */
@@ -63,6 +67,14 @@ class ChadoInstallForm extends FormBase {
           'warning'
         );
       }
+      elseif ($values['action_to_do'] == CLONE_ACTION) {
+        \Drupal::messenger()->addMessage(
+            t('For duplicating a schema, select the schema to duplicate first and
+            then specify a new schema name as target int the "Advanced Options"
+            section.'),
+            'status'
+        );
+      }
       elseif ($values['action_to_do'] == DROP_ACTION) {
         \Drupal::messenger()->addMessage(
           t('Please note: all data will be lost in the schema you choose to
@@ -70,12 +82,12 @@ class ChadoInstallForm extends FormBase {
           'warning'
         );
       }
-      elseif ($values['action_to_do'] == CLONE_ACTION) {
+      elseif ($values['action_to_do'] == UPGRADE_13_ACTION) {
         \Drupal::messenger()->addMessage(
-            t('For duplicating a schema, select the schema to duplicate first and
-            then specify a new schema name as target int the "Advanced Options"
-            section.'),
-            'status'
+            t('Please note: before upgrading, it is recommanded to backup your
+            existing data and/or clone your Chado schema first. The upgrade
+            process can not be undone.'),
+            'warning'
         );
       }
     }
@@ -190,7 +202,7 @@ class ChadoInstallForm extends FormBase {
         ],
         '#rows' => $rows,
       ];
-      if (IMPORT_ACTION == $form_state->getValue('action_to_do')) {
+      if (INTEGRATE_ACTION == $form_state->getValue('action_to_do')) {
         // Change the form identifier from "available_chado" to "schema_name".
         $form['schema_name'] = array_merge(
           $form['available_chado'],
@@ -275,18 +287,18 @@ class ChadoInstallForm extends FormBase {
         existing Chado data if this chado schema already exists).'),
     ];
     if ($not_installed_schemas) {
-      $options[IMPORT_ACTION] = t('Integrate Existing Chado (integrate an
+      $options[INTEGRATE_ACTION] = t('Integrate Existing Chado (integrates an
         existing Chado instance into Tripal)');
     }
     if ($installs) {
-      $options[CLONE_ACTION] = t('Clone Existing Chado (clone existing data
+      $options[CLONE_ACTION] = t('Clone Existing Chado (clones existing data
         into a new instance)');
       $options[DROP_ACTION] = t('Remove Existing Chado (erases all existing
         chado data)');
     }
     $form['action_to_do'] = [
       '#type' => 'select',
-      '#title' => 'Installation/Upgrade Action',
+      '#title' => 'Actions',
       '#options' => $options,
       '#required' => TRUE,
       '#empty_option' => t('- Select an action to perform -'),
@@ -397,16 +409,6 @@ class ChadoInstallForm extends FormBase {
     $current_user = \Drupal::currentUser();
 
     switch ($action_to_do) {
-      case INSTALL_13_ACTION:
-        $args = [$action_to_do, $schema_name];
-        tripal_add_job($action_to_do, 'tripal_chado',
-          'tripal_chado_install_chado', $args, $current_user->id(), 10);
-        break;
-      case IMPORT_ACTION:
-        $args = [$schema_name];
-        tripal_add_job($action_to_do, 'tripal_chado',
-            'tripal_chado_import_schema', $args, $current_user->id(), 10);
-        break;
       case CLONE_ACTION:
         $args = [$schema_name, $target_schema_name];
         tripal_add_job($action_to_do, 'tripal_chado',
@@ -416,6 +418,21 @@ class ChadoInstallForm extends FormBase {
         $args = [$schema_name];
         tripal_add_job($action_to_do, 'tripal_chado',
             'tripal_chado_drop_schema', $args, $current_user->id(), 10);
+        break;
+      case INSTALL_13_ACTION:
+        $args = [$action_to_do, $schema_name];
+        tripal_add_job($action_to_do, 'tripal_chado',
+          'tripal_chado_install_chado', $args, $current_user->id(), 10);
+        break;
+      case INTEGRATE_ACTION:
+        $args = [$schema_name];
+        tripal_add_job($action_to_do, 'tripal_chado',
+            'tripal_chado_integrate_chado', $args, $current_user->id(), 10);
+        break;
+      case UPGRADE_13_ACTION:
+        $args = [$action_to_do, $schema_name];
+        tripal_add_job($action_to_do, 'tripal_chado',
+            'tripal_chado_upgrade_schema', $args, $current_user->id(), 10);
         break;
     }
 

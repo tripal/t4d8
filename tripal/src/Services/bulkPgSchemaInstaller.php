@@ -6,7 +6,6 @@ use Drupal\Core\Database\Database;
 
 class bulkPgSchemaInstaller {
 
-
   /**
    * The name of the schema we are interested in applying SQL to.
    */
@@ -44,19 +43,22 @@ class bulkPgSchemaInstaller {
 
     // Get the default database.
     $databases = $this->connection->getConnectionOptions();
-    $dsn = sprintf( 'dbname=%s host=%s port=%s user=%s password=%s',
+    $dsn = sprintf(
+      'dbname=%s host=%s port=%s user=%s password=%s',
       $databases['database'],
       $databases['host'],
       $databases['port'],
       $databases['username'],
-      $databases['password'] );
+      $databases['password']
+    );
 
     // Open a PHP connection to the database
     // since Drupal restricts us to a single statement per exec.
     $pgconnection = pg_connect($dsn);
     if (!$pgconnection) {
       $this->logger->error(
-        "Unable to connect to database using '$dsn' connection string.\n");
+        "Unable to connect to database using '$dsn' connection string.\n"
+      );
 
       pg_close($pgconnection);
       return FALSE;
@@ -98,7 +100,7 @@ class bulkPgSchemaInstaller {
    *   Current Drupal connection.
    */
   public function getDrupalConnection() {
-  return $this->connection;
+    return $this->connection;
   }
 
   /**
@@ -108,7 +110,7 @@ class bulkPgSchemaInstaller {
    *   PostgreSQL connection resource on success, FALSE on failure.
    */
   public function getPgConnection() {
-  return $this->pgconnection;
+    return $this->pgconnection;
   }
 
   /**
@@ -118,7 +120,7 @@ class bulkPgSchemaInstaller {
    *
    */
   public function getLogger() {
-  return $this->logger;
+    return $this->logger;
   }
 
   /**
@@ -137,7 +139,7 @@ class bulkPgSchemaInstaller {
       // Notify the admin and drop the schema.
       // @upgrade tripal_report_error().
       $this->logger->info("Dropping existing Schema: '$schema_name'");
-      $this->connection->query("drop schema $schema_name cascade");
+      $this->connection->query("DROP SCHEMA $schema_name CASCADE");
 
       // Finally, check to see if it was successful.
       if ($this->checkSchema($schema_name)) {
@@ -189,14 +191,14 @@ class bulkPgSchemaInstaller {
    *   Whether or not the schema exists.
    */
   public function checkSchema($schema_name) {
-  $sql = "
-    SELECT true
-    FROM pg_namespace
-    WHERE has_schema_privilege(nspname, 'USAGE') AND nspname = :nspname
-  ";
-  $query = $this->connection->query($sql, [':nspname' => $schema_name]);
-  $schema_exists = $query->fetchField();
-  return $schema_exists;
+    $sql = "
+      SELECT TRUE
+      FROM pg_namespace
+      WHERE has_schema_privilege(nspname, 'USAGE') AND nspname = :nspname
+    ";
+    $query = $this->connection->query($sql, [':nspname' => $schema_name]);
+    $schema_exists = $query->fetchField();
+    return $schema_exists;
   }
 
   /**
@@ -213,7 +215,7 @@ class bulkPgSchemaInstaller {
     // Retrieve the SQL file.
     $sql = file_get_contents($sql_file);
 
-    // change any search path commands.
+    // Change any search path commands.
     if ($schema_name) {
       $sql = preg_replace(
           '/(SET\s*search_path\s*=.*)(chado)/',
