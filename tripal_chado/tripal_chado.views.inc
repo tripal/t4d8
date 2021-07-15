@@ -63,6 +63,22 @@ function tripal_chado_views_data_custom_tables(&$data) {
     ],
   ]; 
 
+  $data['tripal_custom_tables']['edit_link'] = array(
+    'title' => t('Edit'),
+    'help' => t('Clickable link to edit a custom table'),
+    'field' => [
+      'id' => 'chado_custom_tables_edit_link'
+    ],   
+  );  
+
+  $data['tripal_custom_tables']['delete_link'] = array(
+    'title' => t('Delete'),
+    'help' => t('Clickable link to delete a custom table'),
+    'field' => [
+      'id' => 'chado_custom_tables_delete_link'
+    ],   
+  );
+
   return $data;
 }
 

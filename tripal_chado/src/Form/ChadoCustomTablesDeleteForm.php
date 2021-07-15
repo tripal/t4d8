@@ -2,6 +2,7 @@
 
 namespace Drupal\tripal_chado\Form;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -65,16 +66,26 @@ class ChadoCustomTablesDeleteForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
-    $action = $form_state['clicked_button']['#value'];
+    // drupal_set_message(print_r($values, true));
+    
+    $action = $values['op'];
     $table_id = $values['table_id'];
   
     if (strcmp($action, 'Delete') == 0) {
-      chado_delete_custom_table($table_id);
+      $result = chado_delete_custom_table($table_id);
+      if($result == TRUE) {
+        drupal_set_message(t("Custom table successfully deleted"));
+      }
+      else {
+        drupal_set_message(t("An error occurred when trying to delete custom table. Check the report logs."));
+      }
     }
     else {
       drupal_set_message(t("No action performed."));
     }
-    drupal_goto("admin/tripal/storage/chado/custom_tables");
+    // drupal_goto("admin/tripal/storage/chado/custom_tables");
+    $response = new RedirectResponse(\Drupal\Core\Url::fromUserInput('/admin/tripal/storage/chado/custom_tables')->toString());
+    $response->send();
   }  
 }
 

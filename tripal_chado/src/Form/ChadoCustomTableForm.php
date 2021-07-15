@@ -291,7 +291,10 @@ class ChadoCustomTableForm extends FormBase {
       drupal_set_message(t("No action performed."));
     }
   
-    drupal_goto("admin/tripal/storage/chado/custom_tables");
+    // drupal_goto("admin/tripal/storage/chado/custom_tables");
+
+    $response = new RedirectResponse(\Drupal\Core\Url::fromUserInput('/admin/tripal/storage/chado/custom_tables')->toString());
+    $response->send();    
   }
   
 }
