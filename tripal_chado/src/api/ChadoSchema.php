@@ -175,7 +175,7 @@ class ChadoSchema {
     // Schema name must be all lowercase with no special characters with the
     // exception of underscores and diacritical marks (which can be uppercase).
     // ref.:
-    // https://www.postgresql.org/docs/9.2/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+    // https://www.postgresql.org/docs/9.5/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
     // It should also not contain any space and must not begin with "pg_".
     // Note: capital letter could be used but are silently converted to
     // lowercase by PostgreSQL. Here, we want to avoid ambiguity so we forbid
