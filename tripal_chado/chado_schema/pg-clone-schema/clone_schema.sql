@@ -442,7 +442,10 @@ BEGIN
 -- Create tables including partitioned ones (parent/children) and unlogged ones.  Order by is critical since child partition range logic is dependent on it.
   action := 'Tables';
   cnt := 0;
-  --SET search_path = '';
+  -- SET search_path = '';
+  -- We want objects used in table definitions to be taken from the new schema,
+  -- however some objects may not have been created yet so we use source schema
+  -- as source first and will reassign things to the new schema later.
   EXECUTE 'SET search_path = ' || quote_ident(source_schema);
   FOR tblname, relpersist, relispart, relknd, data_type, ocomment  IN
     -- 2021-03-08 MJV #39 fix: change sql to get indicator of user-defined columns to issue warnings
@@ -822,7 +825,6 @@ BEGIN
   cnt := 0;
   -- MJV FIX per issue# 34
   -- SET search_path = '';
-  --+val EXECUTE 'SET search_path = ' || quote_ident(source_schema);
   EXECUTE 'SET search_path = ' || quote_ident(dest_schema);
 
   -- First pass to create prototype functions for function inter-dependencies.
@@ -956,8 +958,6 @@ BEGIN
   END LOOP;
 
   RAISE NOTICE '   FUNCTIONS cloned: %', LPAD(cnt::text, 5, ' ');
-
-  -- FIXME: A new pass should be added to update previous objects using functions.
 
   -- MV: Create Triggers
 
@@ -1259,8 +1259,8 @@ BEGIN
 
   -- Set the search_path back to what it was before
   -- MJV FIX: Issue#47
-  -- EXECUTE 'SET search_path = ' || src_path_old;
   EXECUTE 'SET search_path = ' || src_path_old;
+
 
   EXCEPTION
      WHEN others THEN
