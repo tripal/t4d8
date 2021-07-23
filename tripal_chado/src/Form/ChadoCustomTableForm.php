@@ -2,6 +2,7 @@
 
 namespace Drupal\tripal_chado\Form;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -283,9 +284,11 @@ class ChadoCustomTableForm extends FormBase {
   
     if (strcmp($action, 'Edit') == 0) {
       chado_edit_custom_table($table_id, $schema_arr['table'], $schema_arr, $skip_creation);
+      drupal_set_message(t("Custom table has been edited."));
     }
     elseif (strcmp($action, 'Add') == 0) {
-      chado_create_custom_table($schema_arr['table'], $schema_arr, $skip_creation);
+      chado_create_custom_table($schema_arr['table'], $schema_arr, $skip_creation, NULL, FALSE);
+      drupal_set_message(t("Custom table has been added."));
     }
     else {
       drupal_set_message(t("No action performed."));
