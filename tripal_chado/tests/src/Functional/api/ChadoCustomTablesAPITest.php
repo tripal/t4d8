@@ -36,7 +36,7 @@ class ChadoCustomTablesAPITest extends BrowserTestBase {
      * @group tripal-chado
      * @group chado-cv
      */
-    public function testcv() {
+    public function testcreatecustomtable() {
       if (ChadoSchema::schemaExists($this::$schemaName) == TRUE) {
         // Create a new custom table
         $table = "test_custom_table";
