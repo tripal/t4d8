@@ -84,12 +84,12 @@ function tripal_chado_drop_schema($schema, $job = NULL) {
 function tripal_chado_upgrade_schema($action, $chado_schema = 'chado', $job = NULL) {
 
   if ($action == \Drupal\tripal_chado\Form\ChadoInstallForm::UPGRADE_13_ACTION) {
-    $installer = \Drupal::service('tripal_chado.chadoUpgrader');
-    $installer->setSchema($chado_schema);
+    $upgrader = \Drupal::service('tripal_chado.chadoUpgrader');
+    $upgrader->setSchema($chado_schema);
     if ($job) {
-      $installer->setJob($job);
+      $upgrader->setJob($job);
     }
-    $success = $installer->upgrade(1.3);
+    $success = $upgrader->upgrade(1.3);
   }
   else {
     \Drupal::logger('tripal_chado')->error("NOT SUPPORTED: " . $action);

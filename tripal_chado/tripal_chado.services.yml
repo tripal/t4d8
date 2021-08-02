@@ -5,5 +5,5 @@ services:
         class: Drupal\tripal_chado\Services\chadoInstaller
     tripal_chado.chadoIntegrator:
         class: Drupal\tripal_chado\Services\chadoIntegrator
-    tripal_chado.chadoUpdater:
+    tripal_chado.chadoUpgrader:
         class: Drupal\tripal_chado\Services\chadoUpgrader
