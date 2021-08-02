@@ -39,18 +39,43 @@ class ChadoCustomTablesAPITest extends BrowserTestBase {
     public function testcreatecustomtable() {
       if (ChadoSchema::schemaExists($this::$schemaName) == TRUE) {
         // Create a new custom table
-        $table = "test_custom_table";
-        chado_create_custom_table($table, $this::$schemaName, $skip_if_exists = TRUE, $mview_id = NULL, $redirect = FALSE);
-        $results = chado_query("SELECT * FROM tripal_custom_tables WHERE table_name = :table_name", array(
-            ':table_name' => $table
+        $table_name = 'test_custom_table';
+        $table = array(
+          'table' => 'test_custom_table',
+          'fields' => array (
+            'feature_id' => array (
+              'type' => 'serial',
+              'not null' => true,
+            ),
+            'organism_id' => array (
+              'type' => 'int',
+              'not null' => true,
+            ),
+            'uniquename' => array (
+              'type' => 'text',
+              'not null' => true,
+            ),
+            'type_name' => array (
+              'type' => 'varchar',
+              'length' => '1024',
+              'not null' => true,
+            ),
+          ),
+        );
+        $customtable_result = chado_create_custom_table($table_name, $table,  FALSE, NULL, FALSE);
+        // print_r($customtable_result);
+        $results = chado_query("SELECT * FROM tripal_custom_tables", array(
+            //':table_name' => $table_name
         ));
         $found_table = false;
-        foreach ($result as $row) {
-            if($row->table_name == $table) {
+        foreach ($results as $row) {
+            // print_r($row);
+            if($row->table_name == $table_name) {
                 $found_table = true;
+                break;
             }
         }
-        $this->assertNotFalse($found_table, 'Error, custom table was not created successfully');
+        $this->assertTrue($found_table, 'Error, custom table was not created successfully');
       }
       else {
         // If test schema cannot be found, display php unit error
