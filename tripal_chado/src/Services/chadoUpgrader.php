@@ -8,6 +8,45 @@ use Drupal\tripal\Services\bulkPgSchemaInstaller;
 class chadoUpgrader extends bulkPgSchemaInstaller {
 
   /**
+   * Name of the reference schema for 1.3.
+   *
+   * This name can be overriden by extending classes.
+   * We use the ¥ sign (UTF8 \xC2\xA5 or ASCII \xBE) to reduce the risk of
+   * schema name conflict.
+   */
+  public const CHADO_REF_SCHEMA = '_chado_upgrade_tmp_¥';
+
+  /**
+   * Defines a priority order to process some Chado objects to upgrade.
+   */
+  public const CHADO_OBJECTS_PRIORITY = [
+    'db',
+    'dbxref',
+    'cv',
+    'cvterm',
+    'cvtermpath',
+    'pub',
+    'synonym',
+    'feature',
+    'feature_cvterm',
+    'feature_dbxref',
+    'feature_synonym',
+    'featureprop',
+    'feature_pub',
+    'gffatts',
+
+  /*
+    cvtermpath / _get_all_object_ids(bigint)
+    cvtermpath / _get_all_subject_ids(bigint)
+    feature / feature_disjoint_from(bigint)
+    feature / feature_overlaps(bigint)
+    featureloc / feature_subalignments(bigint)
+    ...
+
+  */
+  ];
+
+  /**
    * The version of the current and new chado schema specified by $schemaName.
    */
   protected $newVersion;
@@ -23,12 +62,42 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
   protected $refSchemaNameQuoted;
 
   /**
+   * Upgrade SQL queries.
+   */
+  protected $upgradeQueries;
+
+  /**
    * Upgrade Chado schema to the specified version.
    *
-   * We create a new schema having the same name but ending with '¥'. We
-   * install an empty Chado schema in that schema as a structure reference. We
-   * then iterate on each object of that schema to adjust the corresponding
-   * object in the schema to upgrade.
+   * We create a new Chado 1.3 schema  (@see CHADO_REF_SCHEMA) to use as a
+   * reference for the upgrade process. Then, we process each PostgreSQL object
+   * categories and compare the schema to upgrade to the reference one. When
+   * changes are required, we store the corresponding SQL queries for each
+   * object in the 'upgradeQueries' class member. Cleanup queries are stored in
+   * 'upgradeQueries['#cleanup']' in order to remove unwanted objects.
+   * The upgrade process is the following:
+   * 1) Prepare table column defaults removal in table definitions (ie. remove
+   *    sequences and function dependencies)
+   * 2) Prepare functions and aggregate functions removal
+   * 3) Prepare views removal
+   * 4) Prepare database type upgrade
+   * 5) Prepare sequence upgrade
+   * 6) Prepare function prototypes (for function inter-dependencies)
+   * 7) Prepare table column type upgrade
+   *    Columns that match $CHADO_COLUMN_UPDATE will be upgraded
+   *    using the corresponding queries. Other columns will be updated using
+   *    default behavior. Defaults are dropped and will be added later.
+   * 8) Prepare sequence association (to table columns)
+   * 9) Prepare view upgrade
+   * 10) Prepare function upgrade
+   * 11) Prepare aggregate function upgrade
+   * 12) Prepare table column default upgrade
+   * 13) Prepare comment upgrade
+   * 14) Process upgrade queries
+   *
+   * Note: a couple of PostgreSQL object are not processed as they are not part
+   * of Chado schema specifications: collations, domains, triggers and
+   * materialized views (in PostgreSQL, not Tripal).
    *
    * @param float $version
    *   The version of chado you would like to upgrade to.
@@ -38,8 +107,8 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
     // Save schema name to upgrade.
     $chado_schema = $this->schemaName;
 
-    // Appends the ¥ sign (UTF8 \xC2\xA5 or ASCII \xBE).
-    $ref_chado_schema = '_chado_upgrade_tmp_¥';
+    // The ref schema name can be overriden by extending classes.
+    $ref_chado_schema = $this::CHADO_REF_SCHEMA;
 
     $connection = $this->connection;
     // Get quoted schema names from PostgreSQL.
@@ -56,6 +125,22 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       ->qi ?: $ref_chado_schema
     ;
     $this->refSchemaNameQuoted = $ref_chado_schema_quoted;
+
+    // Init query array. We initialize a list of element to have them processed
+    // in correct order.
+    $this->upgradeQueries = [
+      '#start' => ['START TRANSACTION;'],
+      '#cleanup' => [],
+      '#drop_column_defaults' => [],
+      '#drop_functions' => [],
+      '#drop_views' => [],
+      '#types' => [],
+      '#sequences' => [],
+      '#priorities' => [],
+      // "#end" will be processed at last even if new elements are added after
+      // to upgradeQueries. Its queries will be processed in reverse order.
+      '#end' => ['COMMIT;'],
+    ];
 
     // VALIDATION.
     // Check the version is valid.
@@ -140,47 +225,56 @@ if (FALSE) { //+debug
       pg_query($this->getPgConnection(), $sql_query);
 
       // 3) Compare schema structures...
-      // - Collations: ignored, not relevant.
-      // - Domains: ignored, not relevant.
-      // - Check types.
-      $this->upgradeTypes($chado_schema, $ref_chado_schema, $cleanup);
-
       // - Remove column defaults.
-      $this->dropAllColumnDefaults($chado_schema, $ref_chado_schema);
+      $this->prepareDropColumnDefaults($chado_schema, $ref_chado_schema);
 
-      // - Create prototype functions.
-      $this->createPrototypeFunctions($chado_schema, $ref_chado_schema);
-
-      // - Upgrade aggregate functions.
-      $this->upgradeAggregateFunctions($chado_schema, $ref_chado_schema, $cleanup);
-
-      // - Upgrade existing sequences and add missing ones.
-      $this->upgradeSequences($chado_schema, $ref_chado_schema, $cleanup);
+      // - Remove functions.
+      $this->prepareDropFunctions($chado_schema, $ref_chado_schema, $cleanup);
 
       // - Drop old views to remove dependencies on tables.
-      $this->dropAllViews($chado_schema);
+      $this->prepareDropAllViews($chado_schema);
+
+      // - Check types.
+      $this->prepareUpgradeTypes($chado_schema, $ref_chado_schema, $cleanup);
+
+      // - Upgrade existing sequences and add missing ones.
+      $this->prepareUpgradeSequences($chado_schema, $ref_chado_schema, $cleanup);
+
+      // - Create prototype functions.
+      $this->preparePrototypeFunctions($chado_schema, $ref_chado_schema);
 
       // - Tables.
-      $this->upgradeTables($chado_schema, $ref_chado_schema, $cleanup);
+      $this->prepareUpgradeTables($chado_schema, $ref_chado_schema, $cleanup);
 
       // - Sequence associations.
-      $this->associateSequences($chado_schema, $ref_chado_schema);
+      $this->prepareSequenceAssociation($chado_schema, $ref_chado_schema);
 
       // - Views.
-      $this->upgradeViews($chado_schema, $ref_chado_schema);
+      $this->prepareUpgradeViews($chado_schema, $ref_chado_schema, $cleanup);
 
       // - Upgrade functions (fill function bodies).
-      $this->upgradeFunctions($chado_schema, $ref_chado_schema, $cleanup);
+      $this->prepareFunctionUpgrade($chado_schema, $ref_chado_schema, $cleanup);
 
-      // - Triggers: ignored, not relevant.
-      // - Materialized views: ignored, not relevant.
+      // - Upgrade aggregate functions.
+      $this->prepareAggregateFunctionUpgrade($chado_schema, $ref_chado_schema, $cleanup);
+
+      // - Tables defaults.
+      $this->prepareUpgradeTableDefauls($chado_schema, $ref_chado_schema, $cleanup);
 
       // - Upgrade comments.
-      $this->upgradeComments($chado_schema, $ref_chado_schema, $cleanup);
+      $this->prepareCommentUpgrade($chado_schema, $ref_chado_schema, $cleanup);
 
+      // - Add missing initialization data.
+      $this->reinitSchema($chado_schema, $ref_chado_schema);
+
+      // - Process upgrades.
+      $this->processUpgrades($chado_schema, $ref_chado_schema);
+
+      // @TODO: Test transaction behavior.
       // x) Check if schema is integrated into Tripal and update version if needed.
     }
     catch (Exception $e) {
+      pg_query($this->getPgConnection(), 'ROLLBACK;');
       // Restore search_path.
       $sql_query = "SET search_path = $old_search_path;";
       $connection->query($sql_query);
@@ -212,7 +306,7 @@ if (FALSE) { //+debug
    * @param $cleanup
    *   Remove types not defined in the official Chado release.
    */
-  protected function upgradeTypes(
+  protected function prepareUpgradeTypes(
     $chado_schema,
     $ref_chado_schema,
     $cleanup
@@ -276,12 +370,11 @@ if (FALSE) { //+debug
         if (($new_type->typcategory != $old_type->typcategory)
             || ($new_type->typdef != $old_type->typdef)) {
           // Recreate type.
-          $sql_query =
+          $this->upgradeQueries['#types'][] =
             "DROP TYPE IF EXISTS "
             . $this->schemaNameQuoted
             . ".$new_type_name CASCADE;";
-          $connection->query($sql_query);
-          $sql_query =
+          $this->upgradeQueries['#types'][] =
             "CREATE TYPE "
             . $this->schemaNameQuoted
             . ".$new_type_name AS "
@@ -290,7 +383,6 @@ if (FALSE) { //+debug
             . $new_type->typdef
             . ");"
           ;
-          $connection->query($sql_query);
         }
         else {
           // Same types: remove from $new_types.
@@ -301,7 +393,7 @@ if (FALSE) { //+debug
       }
       else {
         // Does not exist, add it.
-        $sql_query =
+        $this->upgradeQueries['#types'][] =
           "CREATE TYPE "
           . $this->schemaNameQuoted
           . ".$new_type_name AS "
@@ -310,7 +402,6 @@ if (FALSE) { //+debug
           . $new_type->typdef
           . ");"
         ;
-        $connection->query($sql_query);
       }
     }
     // Report type changes.
@@ -318,12 +409,11 @@ if (FALSE) { //+debug
       if ($cleanup) {
         // Remove old types.
         foreach ($old_types as $old_type_name => $old_type) {
-          $sql_query =
+          $this->upgradeQueries['#cleanup'][] =
             "DROP TYPE IF EXISTS "
             . $this->schemaNameQuoted
             . ".$old_type_name CASCADE;"
           ;
-          $connection->query($sql_query);
         }
         \Drupal::messenger()->addWarning(
           t(
@@ -366,7 +456,7 @@ if (FALSE) { //+debug
    * @param $ref_chado_schema
    *   Name of the reference schema to use for upgrade.
    */
-  protected function dropAllColumnDefaults(
+  protected function prepareDropColumnDefaults(
     $chado_schema,
     $ref_chado_schema
   ) {
@@ -385,9 +475,24 @@ if (FALSE) { //+debug
       WHERE
         c.relkind = 'r'
         AND c.relpersistence = 'p'
+        AND EXISTS (
+          SELECT TRUE
+          FROM pg_class c2
+            JOIN pg_namespace n2 ON (
+              n2.oid = c2.relnamespace
+              AND n2.nspname = :ref_schema
+            )
+          WHERE c2.relname = c.relname
+            AND c2.relkind = 'r'
+            AND c2.relpersistence = 'p'
+        )
     ";
+    // Here, we use ref schema as old schema table should be removed by cleanup.
     $tables = $connection
-      ->query($sql_query, [':schema' => $chado_schema])
+      ->query(
+        $sql_query,
+        [':schema' => $chado_schema, ':ref_schema' => $ref_chado_schema,]
+      )
       ->fetchCol()
     ;
 
@@ -404,14 +509,13 @@ if (FALSE) { //+debug
       $table_definition = $this->parse_table_ddl($table_raw_definition);
       foreach ($table_definition['columns'] as $column => $column_def) {
         if (!empty($column_def['default'])) {
-          $sql_query =
+          $this->upgradeQueries['#drop_column_defaults'][] =
             "ALTER TABLE "
             . $this->schemaNameQuoted
             . '.'
             . $table
             . " ALTER COLUMN $column DROP DEFAULT;"
           ;
-          $connection->query($sql_query);
         }
       }
     }
@@ -432,43 +536,20 @@ if (FALSE) { //+debug
    * @param $ref_chado_schema
    *   Name of the reference schema to use for upgrade.
    */
-  protected function createPrototypeFunctions(
+  protected function preparePrototypeFunctions(
     $chado_schema,
     $ref_chado_schema
   ) {
     $connection = $this->connection;
-    $pgconnection = $this->getPgConnection();
 
-    // Get the list of new functions.
-    // Here we don't use {} for tables as these are system tables.
-//    $sql_query = "
-//        SELECT
-//          regexp_replace(
-//            regexp_replace(
-//              regexp_replace(
-//                pg_get_functiondef(p.oid),
-//                :regex_search,
-//                :regex_replace,
-//                'is'
-//              ),
-//              :regex_search2,
-//              :regex_replace2,
-//              'is'
-//            ),
-//            '" . $this->refSchemaNameQuoted . "\\.',
-//            '" . $this->schemaNameQuoted . ".',
-//            'gis'
-//          ) AS \"proto\"
-//          FROM pg_proc p
-//            JOIN pg_namespace n ON pronamespace = n.oid
-//        WHERE
-//          n.nspname = :ref_schema
-//          AND prokind != 'a'
-//        ;
-//    ";
     $sql_query = "
       SELECT
         p.proname AS \"proname\",
+        p.proname
+          || '('
+          ||  pg_get_function_identity_arguments(p.oid)
+          || ')'
+        AS \"proident\",
         replace(
           'CREATE OR REPLACE FUNCTION " . $this->schemaNameQuoted . ".'
             || quote_ident(p.proname)
@@ -495,17 +576,6 @@ if (FALSE) { //+debug
     $proto_funcs = $connection
       ->query($sql_query, [
         ':ref_schema' => $ref_chado_schema,
-//        // First pass replaces function options and body by and empty body.
-//        // Matches everything to the first ')' and replace the rest.
-//        ':regex_search' => '^([^\)]+\)).*$',
-//        ':regex_replace' => '\1 RETURNS VOID LANGUAGE plpgsql AS $_$BEGIN END;$_$;',
-//        // Second pass removes the RETURNS part if there are OUT/INOUT
-//        // parameters.
-//        // Matches everything inside the parenthesis that has something like
-//        // " OUT,", " INOUT,", " INOUT)" or " OUT)" and removes the "RETURNS
-//        // VOID" part if so.
-//        ':regex_search2' => '(\((?:.+\s(?:IN)?OUT\s*,.+|.+\s(?:IN)?OUT\s*)\))\s* RETURNS VOID ',
-//        ':regex_replace2' => '\1',
       ])
       ->fetchAll()
     ;
@@ -519,20 +589,14 @@ if (FALSE) { //+debug
         'DROP FUNCTION IF EXISTS \1 CASCADE;',
         $proto_func->proto
       );
-//      $sql_query = 'DROP FUNCTION IF EXISTS ' . $this->schemaNameQuoted . '.' . $proto_func->proname . ' CASCADE;';
-      $proto_query = str_replace('#', ';', $proto_func->proto);
-      // Create new one.
-      $result =
-        pg_query($pgconnection, $sql_query)
-        && pg_query($pgconnection, $proto_query)
-      ;
-      if (!$result) {
-        // Failed.
-        throw new \Exception(
-          'Failed to generate prototype function: '
-          . $proto_query
-        );
+     $proto_query = str_replace('#', ';', $proto_func->proto);
+
+      $object_id = $proto_func->proident . ' proto';
+      if (!isset($this->upgradeQueries[$object_id])) {
+        $this->upgradeQueries[$object_id] = [];
       }
+      $this->upgradeQueries[$object_id][] = $sql_query;
+      $this->upgradeQueries[$object_id][] = $proto_query;
     }
   }
 
@@ -546,7 +610,7 @@ if (FALSE) { //+debug
    * @param $cleanup
    *   Remove sequences not defined in the official Chado release.
    */
-  protected function upgradeSequences(
+  protected function prepareUpgradeSequences(
     $chado_schema,
     $ref_chado_schema,
     $cleanup
@@ -605,7 +669,10 @@ if (FALSE) { //+debug
       );
       // Owning tables are managed later, once tables are upgraded.
       $create_update_seq_sql_query =
-        " SEQUENCE $chado_schema.$new_seq_name"
+        ' SEQUENCE '
+        . $this->schemaNameQuoted
+        . '.'
+        . $new_seq_name
         . $increment_sql
         . $min_val_sql
         . $max_val_sql
@@ -625,7 +692,10 @@ if (FALSE) { //+debug
         ) {
 
           // Alter sequence.
-          $connection->query('ALTER' . $create_update_seq_sql_query);
+          $this->upgradeQueries['#sequences'][] =
+            'ALTER '
+            . $create_update_seq_sql_query
+          ;
         }
         else {
           // Same types: remove from $new_seqs.
@@ -636,7 +706,10 @@ if (FALSE) { //+debug
       }
       else {
         // Does not exist, add it.
-        $connection->query('CREATE' . $create_update_seq_sql_query);
+        $this->upgradeQueries['#sequences'][] =
+          'CREATE '
+          . $create_update_seq_sql_query
+        ;
       }
     }
 
@@ -650,7 +723,7 @@ if (FALSE) { //+debug
             . $this->schemaNameQuoted
             . ".$old_seq_name CASCADE;"
           ;
-          $connection->query($sql_query);
+          $this->upgradeQueries['#cleanup'][] = $sql_query;
         }
         \Drupal::messenger()->addWarning(
           t(
@@ -680,6 +753,7 @@ if (FALSE) { //+debug
       \Drupal::messenger()->addStatus(t("All sequences were already up-to-date."));
     }
   }
+
  /**
    * Drop all views of schema to upgrade.
    *
@@ -688,7 +762,7 @@ if (FALSE) { //+debug
    * @param $ref_chado_schema
    *   Name of the reference schema to use for upgrade.
    */
-  protected function dropAllViews(
+  protected function prepareDropAllViews(
     $chado_schema
   ) {
     $connection = $this->connection;
@@ -705,8 +779,11 @@ if (FALSE) { //+debug
     ;
     // Drop all views of the schema.
     foreach ($views as $view) {
-      $sql_query = "DROP VIEW IF EXISTS $chado_schema.$view CASCADE;";
-      $connection->query($sql_query);
+      $this->upgradeQueries['#drop_views'][] =
+        "DROP VIEW IF EXISTS "
+        . $this->schemaNameQuoted
+        . ".$view CASCADE;"
+      ;
     }
   }
 
@@ -783,11 +860,19 @@ if (FALSE) { //+debug
    * @param $cleanup
    *   Remove tables not defined in the official Chado release.
    */
-  protected function upgradeTables(
+  protected function prepareUpgradeTables(
     $chado_schema,
     $ref_chado_schema,
     $cleanup
   ) {
+    // Column-specific upgrade procedures. First level keys are table names,
+    // second level keys are column names and values are array of 2 keys:
+    // 'update' = a function to run to process update and return SQL queries
+    // 'skip'   = an array of table name as keys and column names to skip as
+    //            sub-keys. If no column names are specified, the whole table
+    //            is skipped.
+    $CHADO_COLUMN_UPDATE = [];
+
     $connection = $this->connection;
     // Here we don't use {} for tables as these are system tables.
     // Note: unlogged tables are not considered.
@@ -817,20 +902,64 @@ if (FALSE) { //+debug
       ->fetchAllAssoc('relname')
     ;
     $processed_new_tables = [];
-
     $new_table_definitions = [];
+    $skip_table_column = [];
+
+    // Check for existing tables with columns that can be updated.
+    foreach ($old_tables as $old_table_name => $old_table) {
+      if (!isset($this->upgradeQueries[$old_table_name])) {
+        $this->upgradeQueries[$old_table_name] = [];
+      }
+
+      // Check lookup table for specific updates (column renaming, value
+      // alteration, ...).
+      if (array_key_exists($old_table_name, $CHADO_COLUMN_UPDATE)) {
+        // Get old table definition.
+        $sql_query = "SELECT public.tripal_get_table_ddl('$chado_schema', '$new_table_name', TRUE) AS \"definition\";";
+        $old_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
+        $old_table_definition = $this->parse_table_ddl($old_table_raw_definition);
+        foreach ($old_table_definition['columns'] as $old_column => $old_column_def) {
+          if (array_key_exists($old_column, $CHADO_COLUMN_UPDATE[$old_table_name])) {
+            // Run update queries.
+            if (!isset($this->upgradeQueries[$old_table_name])) {
+              $this->upgradeQueries[$old_table_name] = [];
+            }
+            $this->upgradeQueries[$old_table_name][] =
+              $CHADO_COLUMN_UPDATE[$old_table_name][$old_column]['update'](
+                $chado_schema,
+                $ref_chado_schema,
+                $cleanup
+              );
+            // Mark column as processed.
+            $skip_table_column += $CHADO_COLUMN_UPDATE[$old_table_name][$old_column]['skip'];
+          }
+        }
+      }
+    }
+
     // Check for missing or changed tables.
     foreach ($new_tables as $new_table_name => $new_table) {
-print "DEBUG: working on table $new_table_name\n"; //+debug
+      if (!isset($this->upgradeQueries[$new_table_name])) {
+        $this->upgradeQueries[$new_table_name] = [];
+      }
+
+      // Get new table definition.
+      $sql_query = "SELECT public.tripal_get_table_ddl('$ref_chado_schema', '$new_table_name', TRUE) AS \"definition\";";
+      $new_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
+      $new_table_definition = $this->parse_table_ddl($new_table_raw_definition);
+
+
+
+      // Check if table should be skipped.
+      if (array_key_exists($new_table_name, $skip_table_column)
+          && empty($skip_table_column[$new_table_name])) {
+        continue;
+      }
+
       if (array_key_exists($new_table_name, $old_tables)) {
 
         // Exists, compare.
         $old_table = $old_tables[$new_table_name];
-
-        // Get new table definition.
-        $sql_query = "SELECT public.tripal_get_table_ddl('$ref_chado_schema', '$new_table_name', TRUE) AS \"definition\";";
-        $new_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
-        $new_table_definition = $this->parse_table_ddl($new_table_raw_definition);
 
         // Get old table definition.
         $sql_query = "SELECT public.tripal_get_table_ddl('$chado_schema', '$new_table_name', TRUE) AS \"definition\";";
@@ -843,8 +972,6 @@ print "DEBUG: working on table $new_table_name\n"; //+debug
         $alter_sql = [];
         // Compare columns.
         foreach ($new_table_definition['columns'] as $new_column => $new_column_def) {
-          // @todo: Maybe use a lookup table first to provide a way to run
-          // some specific updates (column renaming, value alteration, ...).
           // Replace schema name if there.
           $new_default = str_replace(
             $this->refSchemaNameQuoted . '.',
@@ -873,15 +1000,9 @@ print "DEBUG: working on table $new_table_name\n"; //+debug
                 $alter_sql[] = "ALTER COLUMN $new_column SET NOT NULL";
               }
             }
-            // DEFAULT value.
-            if ($old_table_definition['columns'][$new_column]['default'] != $new_default) {
-              if ($new_default) {
-                $alter_sql[] =
-                  "ALTER COLUMN $new_column SET" . $new_default;
-              }
-              else {
-                $alter_sql[] = "ALTER COLUMN $new_column DROP DEFAULT";
-              }
+            // No DEFAULT value at the time (added later).
+            if (!empty($old_table_definition['columns'][$new_column]['default'])) {
+              $alter_sql[] = "ALTER COLUMN $new_column DROP DEFAULT";
             }
             // Remove processed column from old table data.
             unset($old_table_definition['columns'][$new_column]);
@@ -946,25 +1067,22 @@ print "DEBUG: working on table $new_table_name\n"; //+debug
             "ALTER TABLE " . $this->schemaNameQuoted . ".$new_table_name\n  "
             . implode(",\n  ", $alter_sql)
           ;
-print "DEBUG: $sql_query\n"; //+debug
-          $connection->query($sql_query);
+
+          $this->upgradeQueries[$new_table_name][] = $sql_query;
           $processed_new_tables[] = $new_table_name;
         }
 
         // Process indexes.
         // Remove all old indexes.
-print "DEBUG INDEXES: " . print_r($old_table_definition['indexes'], TRUE) . "\n"; //+debug
         foreach ($old_table_definition['indexes'] as $old_index_name => $old_index_def) {
           $sql_query = "DROP INDEX IF EXISTS " . $this->schemaNameQuoted . ".$old_index_name CASCADE;";
-print "DEBUG:   $sql_query\n"; //+debug
-          $connection->query($sql_query);
+          $this->upgradeQueries[$new_table_name][] = $sql_query;
         }
 
         // Create new indexes.
         foreach ($new_table_definition['indexes'] as $new_index_name => $new_index_def) {
           $index_def = str_replace($this->refSchemaNameQuoted . '.', $this->schemaNameQuoted . '.', $new_index_def['query']);
-print "DEBUG:   $index_def\n"; //+debug
-          $connection->query($index_def);
+          $this->upgradeQueries[$new_table_name][] = $index_def;
         }
 
         // Save new definition.
@@ -980,31 +1098,22 @@ print "DEBUG:   $index_def\n"; //+debug
           CREATE TABLE " . $this->schemaNameQuoted . ".$new_table_name
           (LIKE " . $this->refSchemaNameQuoted . ".$new_table_name EXCLUDING CONSTRAINTS)
         ;";
-print "DEBUG: $sql_query\n"; //+debug
-        $connection->query($sql_query);
+        $this->upgradeQueries[$new_table_name][] = $sql_query;
         $processed_new_tables[] = $new_table_name;
 
-        // Update references to functions in column defaults.
+        // Drop column defaults for the moment (added later).
         $sql_query = "
-          SELECT column_name,
-             regexp_replace(
-              column_default::text,
-              :regex_search,
-              :regex_replace,
-              'gis'
-            ) AS \"default\"
+          SELECT column_name
           FROM information_schema.columns
           WHERE
             table_schema = :schema
-            AND TABLE_NAME = :table_name
-            AND column_default ~* ('(^|\W)" . $this->refSchemaNameQuoted . "\.')
+            AND table_name = :table_name
+            AND column_default IS NOT NULL
         ";
         $result = $connection
           ->query($sql_query, [
             ':schema' => $chado_schema,
             ':table_name' => $new_table_name,
-            ':regex_search' => '(^|\W)' . $this->refSchemaNameQuoted . '\.',
-            ':regex_replace' => '\1' . $this->schemaNameQuoted . '.',
           ])
         ;
         if ($result) {
@@ -1016,28 +1125,38 @@ print "DEBUG: $sql_query\n"; //+debug
               . $new_table_name
               . ' ALTER COLUMN '
               . $column->column_name
-              . ' SET DEFAULT '
-              . $column->default
+              . ' DROP DEFAULT'
             ;
-            $connection->query($sql_query);
+            $this->upgradeQueries[$new_table_name][] = $sql_query;
           }
         }
 
+        $new_table_definitions[$new_table_name] = $new_table_definition;
       }
 
       // Add comment.
-      $sql_query = "COMMENT ON TABLE " . $this->schemaNameQuoted . ".$new_table_name IS :comment";
-      $connection->query($sql_query, [':comment' => $new_table->comment]);
+      $sql_query = "COMMENT ON TABLE " . $this->schemaNameQuoted . ".$new_table_name IS " . pg_escape_literal($new_table->comment);
+      $this->upgradeQueries[$new_table_name][] = $sql_query;
     }
 
 
     // Add table contraints.
     foreach ($new_tables as $new_table_name => $new_table) {
-print "DEBUG: constraints for $new_table_name\n"; //+debug
+
+      // Check if table should be skipped.
+      if (array_key_exists($new_table_name, $skip_table_column)
+          && empty($skip_table_column[$new_table_name])) {
+        continue;
+      }
+
       $alter_first_sql = [];
       $alter_next_sql = [];
       $new_table_definition = $new_table_definitions[$new_table_name];
       foreach ($new_table_definition['constraints'] as $new_constraint_name => $new_constraint_def) {
+        // Check if constraint should be skipped.
+        if (array_key_exists($new_constraint_name, $new_table_definition['indexes'])) {
+          continue;
+        }
         $constraint_def = str_replace($this->refSchemaNameQuoted . '.', $this->schemaNameQuoted . '.', $new_constraint_def);
         $alter_first_sql[] = "DROP CONSTRAINT IF EXISTS $new_constraint_name";
         $alter_next_sql[] = "ADD CONSTRAINT $new_constraint_name $constraint_def";
@@ -1049,18 +1168,15 @@ print "DEBUG: constraints for $new_table_name\n"; //+debug
           "ALTER TABLE " . $this->schemaNameQuoted . ".$new_table_name\n  "
           . implode(",\n  ", $alter_first_sql)
         ;
-print "DEBUG: $sql_query\n"; //+debug
-        $connection->query($sql_query);
+        $this->upgradeQueries[$new_table_name][] = $sql_query;
       }
       if (!empty($alter_next_sql)) {
         $sql_query =
           "ALTER TABLE " . $this->schemaNameQuoted . ".$new_table_name\n  "
           . implode(",\n  ", $alter_next_sql)
         ;
-print "DEBUG: $sql_query\n"; //+debug
-        $connection->query($sql_query);
+        $this->upgradeQueries[$new_table_name][] = $sql_query;
       }
-
     }
 
     // Report table changes.
@@ -1072,7 +1188,7 @@ print "DEBUG: $sql_query\n"; //+debug
             . $this->schemaNameQuoted
             . ".$old_table_name CASCADE;"
           ;
-          $connection->query($sql_query);
+          $this->upgradeQueries['#cleanup'][] = $sql_query;
         }
         \Drupal::messenger()->addWarning(
           t(
@@ -1104,6 +1220,124 @@ print "DEBUG: $sql_query\n"; //+debug
   }
 
   /**
+   * Upgrade table column defaults.
+   *
+   * @param $chado_schema
+   *   Name of the schema to upgrade.
+   * @param $ref_chado_schema
+   *   Name of the reference schema to use for upgrade.
+   * @param $cleanup
+   *   Remove tables not defined in the official Chado release.
+   */
+  protected function prepareUpgradeTableDefauls(
+    $chado_schema,
+    $ref_chado_schema,
+    $cleanup
+  ) {
+    $connection = $this->connection;
+    // Here we don't use {} for tables as these are system tables.
+    // Note: unlogged tables are not considered.
+    $sql_query = "
+      SELECT
+        DISTINCT c.relname,
+        c.relispartition,
+        c.relkind,
+        obj_description(c.oid) AS \"comment\"
+      FROM
+        pg_class c
+        JOIN pg_namespace n ON (
+          n.oid = c.relnamespace
+          AND n.nspname = :schema
+        )
+      WHERE
+        c.relkind IN ('r','p')
+        AND c.relpersistence = 'p'
+      ORDER BY c.relkind DESC, c.relname
+    ";
+    $new_tables = $connection
+      ->query($sql_query, [':schema' => $ref_chado_schema])
+      ->fetchAllAssoc('relname')
+    ;
+
+    // Check for missing or changed tables.
+    foreach ($new_tables as $new_table_name => $new_table) {
+      // Get new table definition.
+      $sql_query = "SELECT public.tripal_get_table_ddl('$ref_chado_schema', '$new_table_name', TRUE) AS \"definition\";";
+      $new_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
+      $new_table_definition = $this->parse_table_ddl($new_table_raw_definition);
+
+      foreach ($new_table_definition['columns'] as $new_column => $new_column_def) {
+        // Replace schema name if there.
+        $new_default = str_replace(
+          $this->refSchemaNameQuoted . '.',
+          $this->schemaNameQuoted . '.',
+          $new_table_definition['columns'][$new_column]['default']
+        );
+        if ($new_default) {
+          $sql_query =
+            "ALTER TABLE "
+            . $this->schemaNameQuoted
+            . ".$new_table_name ALTER COLUMN $new_column SET " . $new_default;
+          $this->upgradeQueries[$new_table_name . ' set default'] = [$sql_query];
+        }
+      }
+    }
+  }
+
+  /**
+   * Drop functions.
+   *
+   * @param $chado_schema
+   *   Name of the schema to upgrade.
+   * @param $ref_chado_schema
+   *   Name of the reference schema to use for upgrade.
+   * @param $cleanup
+   *   Remove functions not defined in the official Chado release.
+   */
+  protected function prepareDropFunctions(
+    $chado_schema,
+    $ref_chado_schema,
+    $cleanup
+  ) {
+    $connection = $this->connection;
+
+    // Get the list of new functions.
+    $sql_query = "
+      SELECT
+        p.proname AS \"proname\",
+        replace(
+          'DROP '
+            || CASE
+                WHEN p.prokind = 'a' THEN 'AGGREGATE'
+                ELSE 'FUNCTION'
+              END
+            || ' IF EXISTS " . $this->schemaNameQuoted . ".'
+            || quote_ident(p.proname)
+            || '('
+            ||  pg_get_function_identity_arguments(p.oid)
+            || ') CASCADE',
+          '" . $this->refSchemaNameQuoted . ".',
+          '" . $this->schemaNameQuoted . ".'
+        ) AS \"drop\"
+      FROM pg_proc p
+        JOIN pg_namespace n ON pronamespace = n.oid
+      WHERE
+        n.nspname = :ref_schema
+        ORDER BY p.prokind ASC
+      ;
+    ";
+    $proto_funcs = $connection
+      ->query($sql_query, [
+        ':ref_schema' => $ref_chado_schema,
+      ])
+      ->fetchAll()
+    ;
+    foreach ($proto_funcs as $proto_func) {
+      $this->upgradeQueries['#drop_functions'][] = $proto_func->drop;
+    }
+  }
+
+  /**
    * Upgrade functions.
    *
    * @param $chado_schema
@@ -1113,7 +1347,7 @@ print "DEBUG: $sql_query\n"; //+debug
    * @param $cleanup
    *   Remove functions not defined in the official Chado release.
    */
-  protected function upgradeFunctions(
+  protected function prepareFunctionUpgrade(
     $chado_schema,
     $ref_chado_schema,
     $cleanup
@@ -1125,6 +1359,11 @@ print "DEBUG: $sql_query\n"; //+debug
         SELECT
           p.oid,
           p.proname,
+          p.proname
+            || '('
+            ||  pg_get_function_identity_arguments(p.oid)
+            || ')'
+          AS \"proident\",
           regexp_replace(
             regexp_replace(
               pg_get_functiondef(p.oid),
@@ -1157,11 +1396,11 @@ print "DEBUG: $sql_query\n"; //+debug
     $pgconnection = $this->getPgConnection();
     foreach ($funcs as $func) {
       // Update prototype.
-      $result = pg_query($pgconnection, $func->def);
-      if (!$result) {
-        // Failed.
-        throw new \Exception('Failed to upgrade function: ' . $func->def);
+      $object_id = $func->proident;
+      if (!isset($this->upgradeQueries[$object_id])) {
+        $this->upgradeQueries[$object_id] = [];
       }
+      $this->upgradeQueries[$object_id][] = $func->def;
     }
     if ($cleanup) {
       // Get the list of functions not in the official Chado release.
@@ -1220,7 +1459,7 @@ print "DEBUG: $sql_query\n"; //+debug
           . $this->schemaNameQuoted
           . ".$old_func CASCADE;"
         ;
-        $connection->query($sql_query);
+        $this->upgradeQueries['#cleanup'][] = $sql_query;
       }
       \Drupal::messenger()->addWarning(
         t(
@@ -1241,7 +1480,7 @@ print "DEBUG: $sql_query\n"; //+debug
    * @param $cleanup
    *   Remove aggregate functions not defined in the official Chado release.
    */
-  protected function upgradeAggregateFunctions(
+  protected function prepareAggregateFunctionUpgrade(
     $chado_schema,
     $ref_chado_schema,
     $cleanup
@@ -1251,6 +1490,12 @@ print "DEBUG: $sql_query\n"; //+debug
     // Here we don't use {} for tables as these are system tables.
     $sql_query = "
       SELECT
+        p.proname AS \"proname\",
+        p.proname
+          || '('
+          ||  pg_get_function_identity_arguments(p.oid)
+          || ')'
+        AS \"proident\",
         'DROP AGGREGATE IF EXISTS "
       . $this->schemaNameQuoted
       . ".'
@@ -1305,14 +1550,12 @@ print "DEBUG: $sql_query\n"; //+debug
     $pgconnection = $this->getPgConnection();
     foreach ($aggrfuncs as $aggrfunc) {
       // Drop previous version and add a new one.
-      $result =
-        pg_query($pgconnection, $aggrfunc->drop)
-        && pg_query($pgconnection, $aggrfunc->def)
-      ;
-      if (!$result) {
-        // Failed.
-        throw new \Exception('Failed to create aggregate function: ' . preg_replace('/^CREATE AGGREGATE ([^\)]+\))/s', '\1', $aggrfunc->def));
+      $object_id = $aggrfunc->proident;
+      if (!isset($this->upgradeQueries[$object_id])) {
+        $this->upgradeQueries[$object_id] = [];
       }
+      $this->upgradeQueries[$object_id][] = $aggrfunc->drop;
+      $this->upgradeQueries[$object_id][] = $aggrfunc->def;
       $official_aggregate[$aggrfunc->drop] = TRUE;
     }
 
@@ -1346,8 +1589,8 @@ print "DEBUG: $sql_query\n"; //+debug
       $dropped = [];
       foreach ($aggrfuncs as $aggrfunc) {
         if (!array_key_exists($aggrfunc->drop, $official_aggregate)) {
-          $connection->query($aggrfunc->drop);
-          $dropped[] = preg_replace('/DROP AGGREGATE ([^\)]+\))/', '\1', $aggrfunc->drop);
+          $this->upgradeQueries['#cleanup'][] = $aggrfunc->drop;
+          $dropped[] = preg_replace('/DROP AGGREGATE IF EXISTS ([^\)]+\))/', '\1', $aggrfunc->drop);
         }
       }
       if (!empty($dropped)) {
@@ -1368,10 +1611,13 @@ print "DEBUG: $sql_query\n"; //+debug
    *   Name of the schema to upgrade.
    * @param $ref_chado_schema
    *   Name of the reference schema to use for upgrade.
+   * @param $cleanup
+   *   Remove aggregate functions not defined in the official Chado release.
    */
-  protected function upgradeViews(
+  protected function prepareUpgradeViews(
     $chado_schema,
-    $ref_chado_schema
+    $ref_chado_schema,
+    $cleanup
   ) {
     $connection = $this->connection;
     // Get the list of new views.
@@ -1398,12 +1644,16 @@ print "DEBUG: $sql_query\n"; //+debug
       ->fetchAll()
     ;
     foreach ($views as $view) {
-      $connection->query(
+      if (!isset($this->upgradeQueries[$view->table_name])) {
+        $this->upgradeQueries[$view->table_name] = [];
+      }
+      $sql_query =
         'CREATE OR REPLACE VIEW '
         . $view->table_name
         . ' AS '
         . $view->def
-      );
+      ;
+      $this->upgradeQueries[$view->table_name][] = $sql_query;
       // Add comment if one.
       $sql_query = "
         SELECT obj_description(c.oid) AS \"comment\"
@@ -1427,9 +1677,9 @@ print "DEBUG: $sql_query\n"; //+debug
           . $this->schemaNameQuoted
           . "."
           . $view->table_name
-          . " IS :comment;"
+          . " IS " . pg_escape_literal($comment->comment)
         ;
-        $connection->query($sql_query, [':comment' => $comment->comment]);
+        $this->upgradeQueries[$view->table_name][] = $sql_query;
       }
     }
   }
@@ -1442,7 +1692,7 @@ print "DEBUG: $sql_query\n"; //+debug
    * @param $ref_chado_schema
    *   Name of the reference schema to use for upgrade.
    */
-  protected function associateSequences(
+  protected function prepareSequenceAssociation(
     $chado_schema,
     $ref_chado_schema
   ) {
@@ -1498,7 +1748,8 @@ print "DEBUG: $sql_query\n"; //+debug
           . $relation->attname
           . ';'
         ;
-        $connection->query($sql_query);
+        // Array should have been initialized by table upgrade before.
+        $this->upgradeQueries[$relation->relname][] = $sql_query;
       }
     }
   }
@@ -1510,8 +1761,10 @@ print "DEBUG: $sql_query\n"; //+debug
    *   Name of the schema to upgrade.
    * @param $ref_chado_schema
    *   Name of the reference schema to use for upgrade.
+   * @param $cleanup
+   *   Remove aggregate functions not defined in the official Chado release.
    */
-  protected function upgradeComments(
+  protected function prepareCommentUpgrade(
     $chado_schema,
     $ref_chado_schema,
     $cleanup
@@ -1520,6 +1773,85 @@ print "DEBUG: $sql_query\n"; //+debug
     // Find comment on columns.
     $sql_query = ";";
     //+TODO
+    // $object_id = $new_type_name;
+    // $this->upgradeQueries[$object_id] ?: [];
+  }
+
+  /**
+   * Process upgrades.
+   *
+   * @param $chado_schema
+   *   Name of the schema to upgrade.
+   * @param $ref_chado_schema
+   *   Name of the reference schema to use for upgrade.
+   */
+  protected function processUpgrades(
+    $chado_schema,
+    $ref_chado_schema
+  ) {
+    $pg_connection = $this->getPgConnection();
+    $skip_objects = [];
+    foreach ($this->upgradeQueries as $object_id => $upgrade_queries) {
+      // Skip #end elements that will be processed in the end.
+      if ('#end' == $object_id) {
+        continue;
+      }
+      // Process prioritized objects now (remove them from the regular queue and
+      // add them to the priorities queue).
+      if ('#priorities' == $object_id) {
+        foreach ($this::CHADO_OBJECTS_PRIORITY as $priority) {
+          if (array_key_exists($priority, $this->upgradeQueries)) {
+            $this->upgradeQueries['#priorities'] = array_merge(
+              $this->upgradeQueries['#priorities'],
+              $this->upgradeQueries[$priority]
+            );
+          }
+          else {
+            throw new \Exception("Failed to prioritize object '$priority': object not found in schema definition!");
+          }
+          $skip_objects[$priority] = TRUE;
+        }
+        // Update current variable.
+        $upgrade_queries = $this->upgradeQueries['#priorities'];
+      }
+      // Skip objects already processed (priorities).
+      if (array_key_exists($object_id, $skip_objects)) {
+        continue;
+      }
+      foreach ($upgrade_queries as $sql_query) {
+        $result = pg_query($pg_connection, $sql_query);
+        if (!$result) {
+          throw new \Exception('Upgrade query failed: ' . pg_last_error());
+        }
+      }
+    }
+    foreach (array_reverse($this->upgradeQueries['#end']) as $sql_query ) {
+      $result = pg_query($pg_connection, $sql_query);
+      if (!$result) {
+        throw new \Exception('Upgrade query failed: ' . pg_last_error());
+      }
+    }
+    // Clear queries.
+    $this->upgradeQueries = [];
+  }
+
+  /**
+   * Add missing initialization data.
+   *
+   * @param $chado_schema
+   *   Name of the schema to upgrade.
+   * @param $ref_chado_schema
+   *   Name of the reference schema to use for upgrade.
+   */
+  protected function reinitSchema(
+    $chado_schema,
+    $ref_chado_schema
+  ) {
+    // @TODO
+    // Loop on each table and check for data.
+    // If there are some data, get table column foreign key constraints.
+    // If there are foreign key constraints, process the corresponding data first.
+    
   }
 
 }
