@@ -67,6 +67,11 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
   protected $upgradeQueries;
 
   /**
+   * Database object dependencies.
+   */
+  protected $dependencies;
+
+  /**
    * Upgrade Chado schema to the specified version.
    *
    * We create a new Chado 1.3 schema  (@see CHADO_REF_SCHEMA) to use as a
@@ -84,7 +89,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
    * 5) Prepare sequence upgrade
    * 6) Prepare function prototypes (for function inter-dependencies)
    * 7) Prepare table column type upgrade
-   *    Columns that match $CHADO_COLUMN_UPDATE will be upgraded
+   *    Columns that match $chado_column_upgrade will be upgraded
    *    using the corresponding queries. Other columns will be updated using
    *    default behavior. Defaults are dropped and will be added later.
    * 8) Prepare sequence association (to table columns)
@@ -93,7 +98,9 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
    * 11) Prepare aggregate function upgrade
    * 12) Prepare table column default upgrade
    * 13) Prepare comment upgrade
-   * 14) Process upgrade queries
+   * 14) Prepare data initialization
+   * 15) Process upgrade queries
+   * 16) Update Tripal integration if needed.
    *
    * Note: a couple of PostgreSQL object are not processed as they are not part
    * of Chado schema specifications: collations, domains, triggers and
@@ -101,8 +108,10 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
    *
    * @param float $version
    *   The version of chado you would like to upgrade to.
+   * @param boolean $cleanup
+   *   If TRUE, also remove any stuff not in Chado 1.3 schema definition.
    */
-  public function upgrade($version, $cleanup = FALSE) {
+  public function upgrade($version, $cleanup = TRUE, $filename = NULL) {
     $this->newVersion = $version;
     // Save schema name to upgrade.
     $chado_schema = $this->schemaName;
@@ -156,18 +165,17 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
 
     // Make sure the reference schema is available.
     if ($this->checkSchema($ref_chado_schema)) {
-//+debug      $this->logger->error(
-//+debug        'Temporary reference schema "'
-//+debug        . $ref_chado_schema
-//+debug        . '" already exists. Please remove that schema first if you did not create it (previous unsuccessfull upgrade) or rename it otherwise.'
-//+debug      );
-//+debug      return FALSE;
+      $this->logger->error(
+        'Temporary reference schema "'
+        . $ref_chado_schema
+        . '" already exists. Please remove that schema first if you did not create it (previous unsuccessfull upgrade) or rename it otherwise.'
+      );
+      return FALSE;
     }
     // Validations ok, save previous search_path.
     $sql_query = "SELECT setting FROM pg_settings WHERE name = 'search_path';";
     $old_search_path = $connection->query($sql_query)->fetch()->setting ?: "''";
 
-if (FALSE) { //+debug
     // 1) Create the reference schema.
     $this->createSchema($ref_chado_schema);
 
@@ -176,6 +184,7 @@ if (FALSE) { //+debug
     $this->schemaName = $ref_chado_schema;
     $module_path = drupal_get_path('module', 'tripal_chado');
     $file_path = $module_path . '/chado_schema/chado-only-' . $version . '.sql';
+
     // Run SQL file defining Chado schema.
     $success = $this->applySQL($file_path, $ref_chado_schema);
     if ($success) {
@@ -214,13 +223,11 @@ if (FALSE) { //+debug
     ";
     $this->connection->query($sql_query, [':version' => $version]);
 
-} //+debug
-
     try {
       // Put back specified schema name.
       $this->schemaName = $chado_schema;
       // And make sure we workd in this current schema.
-      $sql_query = "SET search_path = " . $this->schemaNameQuoted . ";";
+      $sql_query = "SET search_path = " . $this->schemaNameQuoted . ",public;";
       $connection->query($sql_query);
       pg_query($this->getPgConnection(), $sql_query);
 
@@ -265,13 +272,14 @@ if (FALSE) { //+debug
       $this->prepareCommentUpgrade($chado_schema, $ref_chado_schema, $cleanup);
 
       // - Add missing initialization data.
-      $this->reinitSchema($chado_schema, $ref_chado_schema);
+      $this->reinitSchema($chado_schema, $version);
 
       // - Process upgrades.
-      $this->processUpgrades($chado_schema, $ref_chado_schema);
+      $this->processUpgrades($chado_schema, $filename);
 
       // @TODO: Test transaction behavior.
-      // x) Check if schema is integrated into Tripal and update version if needed.
+      // x) @TODO: Check if schema is integrated into Tripal and update version if needed.
+
     }
     catch (Exception $e) {
       pg_query($this->getPgConnection(), 'ROLLBACK;');
@@ -281,7 +289,7 @@ if (FALSE) { //+debug
       pg_query($this->getPgConnection(), $sql_query);
 
       // Drop temporary schema.
-//+debug      $this->dropSchema($ref_chado_schema);
+      $this->dropSchema($ref_chado_schema);
 
       // Rethrow exception.
       throw $e;
@@ -293,7 +301,7 @@ if (FALSE) { //+debug
     pg_query($this->getPgConnection(), $sql_query);
 
     // x) Remove temporary reference schema.
-//+debug    $this->dropSchema($ref_chado_schema);
+    $this->dropSchema($ref_chado_schema);
   }
 
   /**
@@ -597,6 +605,7 @@ if (FALSE) { //+debug
       }
       $this->upgradeQueries[$object_id][] = $sql_query;
       $this->upgradeQueries[$object_id][] = $proto_query;
+      // $this->dependencies[proto_func->proident] = [];
     }
   }
 
@@ -834,7 +843,24 @@ if (FALSE) { //+debug
     if (++$i < count($table_ddl)) {
       while ($i < count($table_ddl)) {
         // Parse index name for later comparison.
-        if (preg_match('/^\s*CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?([\w\$\x80-\xFF\.]+)\s+ON\s+([\w\$\x80-\xFF\."]+)\s+USING\s+(.+);\s*$/i', $table_ddl[$i], $match)) {
+        if (preg_match(
+              '/
+                ^\s*
+                CREATE\s+
+                (?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?
+                (?:IF\s+NOT\s+EXISTS\s+)?
+                # Capture index name.
+                ([\w\$\x80-\xFF\.]+)\s+
+                # Capture table column.
+                ON\s+([\w\$\x80-\xFF\."]+)\s+
+                # Capture index structure.
+                USING\s+(.+);\s*
+                $
+              /ix',
+              $table_ddl[$i],
+              $match
+            )
+        ) {
           // Constraint.
           $table_definition['indexes'][$match[1]] = [
             'query' => $match[0],
@@ -871,7 +897,33 @@ if (FALSE) { //+debug
     // 'skip'   = an array of table name as keys and column names to skip as
     //            sub-keys. If no column names are specified, the whole table
     //            is skipped.
-    $CHADO_COLUMN_UPDATE = [];
+    $chado_column_upgrade = [
+      /*
+      Example:
+      'analysis' => [
+        'analysis_id' => [
+          'update' => function ($chado_schema, $ref_chado_schema, $cleanup) {
+            $sql_queries = [];
+            $sql_queries[] = "ALTER $ref_chado_schema.analysis ALTER COLUMN analysis_id ...";
+            $sql_queries[] = "CREATE TABLE $ref_chado_schema.analysis_cvterm ...";
+            $sql_queries[] = "INSERT INTO $ref_chado_schema.analysis_cvterm ...";
+            return $sql_queries;
+          },
+          'skip' => [
+            'analysis' => [
+              'analysis_id' => [],
+            ],
+            'analysis_cvterm' => [],
+          ],
+        ],
+      ],
+      */
+
+    ];
+    \Drupal::moduleHandler()->alter(
+      ['tripal_chado_column_upgrade', 'tripal_chado_column_upgrade_1_13',],
+      $chado_column_upgrade
+    );
 
     $connection = $this->connection;
     // Here we don't use {} for tables as these are system tables.
@@ -913,25 +965,26 @@ if (FALSE) { //+debug
 
       // Check lookup table for specific updates (column renaming, value
       // alteration, ...).
-      if (array_key_exists($old_table_name, $CHADO_COLUMN_UPDATE)) {
+      if (array_key_exists($old_table_name, $chado_column_upgrade)) {
         // Get old table definition.
         $sql_query = "SELECT public.tripal_get_table_ddl('$chado_schema', '$new_table_name', TRUE) AS \"definition\";";
         $old_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
         $old_table_definition = $this->parse_table_ddl($old_table_raw_definition);
         foreach ($old_table_definition['columns'] as $old_column => $old_column_def) {
-          if (array_key_exists($old_column, $CHADO_COLUMN_UPDATE[$old_table_name])) {
-            // Run update queries.
+          if (array_key_exists($old_column, $chado_column_upgrade[$old_table_name])) {
+            // Init upgrade array.
             if (!isset($this->upgradeQueries[$old_table_name])) {
               $this->upgradeQueries[$old_table_name] = [];
             }
+            // Get update queries.
             $this->upgradeQueries[$old_table_name][] =
-              $CHADO_COLUMN_UPDATE[$old_table_name][$old_column]['update'](
+              $chado_column_upgrade[$old_table_name][$old_column]['update'](
                 $chado_schema,
                 $ref_chado_schema,
                 $cleanup
               );
             // Mark column as processed.
-            $skip_table_column += $CHADO_COLUMN_UPDATE[$old_table_name][$old_column]['skip'];
+            $skip_table_column += $chado_column_upgrade[$old_table_name][$old_column]['skip'];
           }
         }
       }
@@ -1259,7 +1312,7 @@ if (FALSE) { //+debug
       ->fetchAllAssoc('relname')
     ;
 
-    // Check for missing or changed tables.
+    // Process all tables.
     foreach ($new_tables as $new_table_name => $new_table) {
       // Get new table definition.
       $sql_query = "SELECT public.tripal_get_table_ddl('$ref_chado_schema', '$new_table_name', TRUE) AS \"definition\";";
@@ -1787,10 +1840,22 @@ if (FALSE) { //+debug
    */
   protected function processUpgrades(
     $chado_schema,
-    $ref_chado_schema
+    $filename
   ) {
     $pg_connection = $this->getPgConnection();
     $skip_objects = [];
+    $fh = FALSE;
+    if (isset($filename)) {
+      if (file_exists($filename)) {
+        throw new \Exception("Invalid file name '$filename'! File already exists!");
+      }
+      $fh = fopen($filename, 'w');
+      if (!$fh) {
+        throw new \Exception("Failed to open '$filename' for writting!");
+      }
+      fwrite($fh, "SET search_path = " . $this->schemaNameQuoted . ",public;\n");
+    }
+    
     foreach ($this->upgradeQueries as $object_id => $upgrade_queries) {
       // Skip #end elements that will be processed in the end.
       if ('#end' == $object_id) {
@@ -1818,19 +1883,35 @@ if (FALSE) { //+debug
       if (array_key_exists($object_id, $skip_objects)) {
         continue;
       }
-      foreach ($upgrade_queries as $sql_query) {
+      if ($fh) {
+        foreach ($upgrade_queries as $sql_query) {
+          fwrite($fh, $sql_query . "\n");
+        }
+      }
+      else {
+        foreach ($upgrade_queries as $sql_query) {
+          $result = pg_query($pg_connection, $sql_query);
+          if (!$result) {
+            throw new \Exception('Upgrade query failed for query:\n$sql_query\nERROR: ' . pg_last_error());
+          }
+        }
+      }
+    }
+    if ($fh) {
+      foreach (array_reverse($this->upgradeQueries['#end']) as $sql_query ) {
+        fwrite($fh, $sql_query . "\n");
+      }
+      fclose($fh);
+    }
+    else {
+      foreach (array_reverse($this->upgradeQueries['#end']) as $sql_query ) {
         $result = pg_query($pg_connection, $sql_query);
         if (!$result) {
           throw new \Exception('Upgrade query failed: ' . pg_last_error());
         }
       }
     }
-    foreach (array_reverse($this->upgradeQueries['#end']) as $sql_query ) {
-      $result = pg_query($pg_connection, $sql_query);
-      if (!$result) {
-        throw new \Exception('Upgrade query failed: ' . pg_last_error());
-      }
-    }
+
     // Clear queries.
     $this->upgradeQueries = [];
   }
@@ -1840,18 +1921,169 @@ if (FALSE) { //+debug
    *
    * @param $chado_schema
    *   Name of the schema to upgrade.
-   * @param $ref_chado_schema
-   *   Name of the reference schema to use for upgrade.
+   * @param $version
+   *   Chado version to initialize.
    */
   protected function reinitSchema(
     $chado_schema,
-    $ref_chado_schema
+    $version
   ) {
-    // @TODO
-    // Loop on each table and check for data.
-    // If there are some data, get table column foreign key constraints.
-    // If there are foreign key constraints, process the corresponding data first.
-    
+    $connection = $this->connection;
+    // Get initialization script.
+    $module_path = drupal_get_path('module', 'tripal_chado');
+    $sql_file = $module_path . '/chado_schema/initialize-' . $version . '.sql';
+    $sql = file_get_contents($sql_file);
+    // Remove any search_path change containing 'chado' as a schema name.
+    $sql = preg_replace(
+      '/^(?:(?!\s*--)[^;]*;)*\s*SET\s*search_path\s*=\s*(?:[^;]+,|)chado(,[^;]+|)\s*;/i',
+      '',
+      $sql
+    );
+    $this->upgradeQueries['#init'] = [$sql];
+    $this->upgradeQueries['#init'][] = "
+      INSERT INTO "
+      . $this->schemaNameQuoted
+      . ".chadoprop (type_id, value, rank)
+      VALUES (
+        (
+          SELECT cvterm_id
+          FROM "
+      . $this->schemaNameQuoted
+      . ".cvterm CVT
+            INNER JOIN "
+      . $this->schemaNameQuoted
+      . ".cv CV on CVT.cv_id = CV.cv_id
+          WHERE CV.name = 'chado_properties' AND CVT.name = 'version'
+        ),
+        '$version',
+        0
+      ) ON CONFLICT (type_id, rank) DO UPDATE SET value = '$version';
+    ";
   }
 
+  /**
+   * Return table dependencies.
+   *
+   * @param $chado_schema
+   *   Name of the schema to process.
+   *
+   * @return array
+   *   first-level keys are table name, second level keys are column names,
+   *   third level keys are foreign table names and values are foreign column
+   *   names.
+   */
+  protected function getTableDependencies(
+    $chado_schema
+  ) {
+    $connection = $this->connection;
+    // Here we don't use {} for tables as these are system tables.
+    // Note: unlogged tables are not considered.
+    $sql_query = "
+      SELECT
+        DISTINCT c.relname
+      FROM
+        pg_class c
+        JOIN pg_namespace n ON (
+          n.oid = c.relnamespace
+          AND n.nspname = :schema
+        )
+      WHERE
+        c.relkind IN ('r','p')
+        AND c.relpersistence = 'p'
+      ORDER BY c.relkind DESC, c.relname
+    ";
+    $tables = $connection
+      ->query($sql_query, [':schema' => $chado_schema])
+      ->fetchAllAssoc('relname')
+    ;
+
+    $table_dependencies = [];
+    // Process all tables.
+    foreach ($tables as $table_name => $table) {
+      $table_dependencies[$table_name] = [];
+
+      // Get new table definition.
+      $sql_query = "SELECT public.tripal_get_table_ddl('$chado_schema', '$table_name', TRUE) AS \"definition\";";
+      $table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
+      $table_definition = $this->parse_table_ddl($table_raw_definition);
+
+      // Process FK constraints.
+      $foreign_keys = [];
+      foreach ($table_definition['constraints'] as $constraint_name => $constraint_def) {
+        if (preg_match(
+              '/
+                # Match "FOREIGN KEY ("
+                FOREIGN\s+KEY\s*\(
+                   # Capture current table columns (one or more).
+                  (
+                    (?:[\w\$\x80-\xFF\.]+\s*,?\s*)+
+                  )
+                \)\s*
+                # Match "REFERENCES"
+                REFERENCES\s*
+                  # Caputre evental schema name.
+                  ([\w\$\x80-\xFF]+\.|)
+                  # Caputre foreign table name.
+                  ([\w\$\x80-\xFF]+)\s*
+                  \(
+                    # Capture foreign table columns (one or more).
+                    (
+                      (?:[\w\$\x80-\xFF]+\s*,?\s*)+
+                    )
+                  \)
+              /ix',
+              $constraint_def,
+              $match
+            )
+        ) {
+          $table_columns =  preg_split('/\s*,\s*/', $match[1]);
+          $foreign_table_schema = $match[2];
+          $foreign_table = $match[3];
+          $foreign_table_columns =  preg_split('/\s*,\s*/', $match[4]);
+          if (count($table_columns) != count($foreign_table_columns)) {
+            throw new \Exception("Failed to parse foreign key definition for table '$table_name':\n'$constraint_def'");
+          }
+          else {
+            for ($i = 0; $i < count($table_columns); ++$i) {
+              $table_dependencies[$table_name][$table_columns[$i]] = [
+                $foreign_table => $foreign_table_columns[$i],
+              ];
+            }
+          }
+        }
+      }
+    }
+    return $table_dependencies;
+  }
+
+}
+
+/**
+ * Hook to alter tripal_chado_column_upgrade variable.
+ *
+ * @see prepareUpgradeTables()
+ */
+function hook_tripal_chado_column_upgrade_alter(&$chado_column_upgrade) {
+  $chado_column_upgrade = array_merge(
+    $chado_column_upgrade,
+    [
+      'analysis' => [
+        'analysis_id' => [
+          'update' => function ($chado_schema, $ref_chado_schema, $cleanup) {
+            $sql_queries = [];
+            $sql_queries[] = "ALTER $ref_chado_schema.analysis ALTER COLUMN analysis_id ...";
+            $sql_queries[] = "CREATE TABLE $ref_chado_schema.analysis_cvterm ...";
+            $sql_queries[] = "INSERT INTO $ref_chado_schema.analysis_cvterm ...";
+            return $sql_queries;
+          },
+          'skip' => [
+            'analysis' => [
+              'analysis_id' => [],
+            ],
+            'analysis_cvterm' => [],
+          ],
+        ],
+      ],
+    ]
+  );
 }

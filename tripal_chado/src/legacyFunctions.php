@@ -81,7 +81,7 @@ function tripal_chado_drop_schema($schema, $job = NULL) {
  *
  * @ingroup tripal_chado
  */
-function tripal_chado_upgrade_schema($action, $chado_schema = 'chado', $job = NULL) {
+function tripal_chado_upgrade_schema($action, $chado_schema = 'chado', $cleanup = TRUE, $file = NULL, $job = NULL) {
 
   if ($action == \Drupal\tripal_chado\Form\ChadoInstallForm::UPGRADE_13_ACTION) {
     $upgrader = \Drupal::service('tripal_chado.chadoUpgrader');
@@ -89,7 +89,7 @@ function tripal_chado_upgrade_schema($action, $chado_schema = 'chado', $job = NU
     if ($job) {
       $upgrader->setJob($job);
     }
-    $success = $upgrader->upgrade(1.3);
+    $success = $upgrader->upgrade(1.3, $cleanup, $file);
   }
   else {
     \Drupal::logger('tripal_chado')->error("NOT SUPPORTED: " . $action);
