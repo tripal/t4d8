@@ -278,7 +278,16 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       $this->processUpgrades($chado_schema, $filename);
 
       // @TODO: Test transaction behavior.
-      // x) @TODO: Check if schema is integrated into Tripal and update version if needed.
+      // x) If schema is integrated into Tripal, update version.
+      $this->connection->update('chado_installations')
+        ->fields([
+          'version' => $version,
+          'created' => \Drupal::time()->getRequestTime(),
+          'updated' => \Drupal::time()->getRequestTime(),
+        ])
+        ->condition('schema_name', $chado_schema, '=')
+        ->execute()
+      ;
 
     }
     catch (Exception $e) {
@@ -514,7 +523,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
           ->fetch()
           ->definition
       );
-      $table_definition = $this->parse_table_ddl($table_raw_definition);
+      $table_definition = $this->parseTableDdl($table_raw_definition);
       foreach ($table_definition['columns'] as $column => $column_def) {
         if (!empty($column_def['default'])) {
           $this->upgradeQueries['#drop_column_defaults'][] =
@@ -687,6 +696,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         . $max_val_sql
         . $start_sql
         . $cycle_sql
+        . ';'
       ;
 
       if (array_key_exists($new_seq_name, $old_seqs)) {
@@ -804,24 +814,26 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
    * @return array
    *   Parsed data in a hash.
    */
-  protected function parse_table_ddl($table_ddl) {
+  public function parseTableDdl($table_ddl) {
     $table_definition = [
       'columns' => [],
       'constraints' => [],
       'indexes' => [],
     ];
 
+    // Skip "CREATE TABLE" line.
     $i = 1;
+    // Loop until end of table definition.
     while (($i < count($table_ddl))
-        && ($table_ddl[$i] != ');')
+        && (!preg_match('/^\s*\)\s*;\s*$/', $table_ddl[$i]))
     ) {
-      if (preg_match('/^  CONSTRAINT ([\w\$\x80-\xFF\.]+) (.+?),?$/', $table_ddl[$i], $match)) {
+      if (preg_match('/^\s*CONSTRAINT\s*([\w\$\x80-\xFF\.]+)\s+(.+?),?\s*$/', $table_ddl[$i], $match)) {
         // Constraint.
         $table_definition['constraints'][$match[1]] = $match[2];
       }
       elseif (
         preg_match(
-          '/^  (\w+) (\w+.*?)( NOT NULL| NULL|)( DEFAULT .+?|),?$/',
+          '/^\s*(\w+)\s+(\w+.*?)(\s+NOT\s+NULL|\s+NULL|)(\s+DEFAULT\s+.+?|),?\s*$/',
           $table_ddl[$i],
           $match
         )
@@ -872,7 +884,6 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         ++$i;
       }
     }
-
     return $table_definition;
   }
 
@@ -969,7 +980,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         // Get old table definition.
         $sql_query = "SELECT public.tripal_get_table_ddl('$chado_schema', '$new_table_name', TRUE) AS \"definition\";";
         $old_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
-        $old_table_definition = $this->parse_table_ddl($old_table_raw_definition);
+        $old_table_definition = $this->parseTableDdl($old_table_raw_definition);
         foreach ($old_table_definition['columns'] as $old_column => $old_column_def) {
           if (array_key_exists($old_column, $chado_column_upgrade[$old_table_name])) {
             // Init upgrade array.
@@ -999,7 +1010,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       // Get new table definition.
       $sql_query = "SELECT public.tripal_get_table_ddl('$ref_chado_schema', '$new_table_name', TRUE) AS \"definition\";";
       $new_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
-      $new_table_definition = $this->parse_table_ddl($new_table_raw_definition);
+      $new_table_definition = $this->parseTableDdl($new_table_raw_definition);
 
 
 
@@ -1017,7 +1028,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         // Get old table definition.
         $sql_query = "SELECT public.tripal_get_table_ddl('$chado_schema', '$new_table_name', TRUE) AS \"definition\";";
         $old_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
-        $old_table_definition = $this->parse_table_ddl($old_table_raw_definition);
+        $old_table_definition = $this->parseTableDdl($old_table_raw_definition);
 
         $are_different = FALSE;
 
@@ -1119,6 +1130,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
           $sql_query =
             "ALTER TABLE " . $this->schemaNameQuoted . ".$new_table_name\n  "
             . implode(",\n  ", $alter_sql)
+            . ';'
           ;
 
           $this->upgradeQueries[$new_table_name][] = $sql_query;
@@ -1178,7 +1190,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
               . $new_table_name
               . ' ALTER COLUMN '
               . $column->column_name
-              . ' DROP DEFAULT'
+              . ' DROP DEFAULT;'
             ;
             $this->upgradeQueries[$new_table_name][] = $sql_query;
           }
@@ -1188,7 +1200,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       }
 
       // Add comment.
-      $sql_query = "COMMENT ON TABLE " . $this->schemaNameQuoted . ".$new_table_name IS " . pg_escape_literal($new_table->comment);
+      $sql_query = "COMMENT ON TABLE " . $this->schemaNameQuoted . ".$new_table_name IS " . pg_escape_literal($new_table->comment) . ';';
       $this->upgradeQueries[$new_table_name][] = $sql_query;
     }
 
@@ -1220,6 +1232,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         $sql_query =
           "ALTER TABLE " . $this->schemaNameQuoted . ".$new_table_name\n  "
           . implode(",\n  ", $alter_first_sql)
+          . ';'
         ;
         $this->upgradeQueries[$new_table_name][] = $sql_query;
       }
@@ -1227,6 +1240,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         $sql_query =
           "ALTER TABLE " . $this->schemaNameQuoted . ".$new_table_name\n  "
           . implode(",\n  ", $alter_next_sql)
+          . ';'
         ;
         $this->upgradeQueries[$new_table_name][] = $sql_query;
       }
@@ -1314,10 +1328,12 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
 
     // Process all tables.
     foreach ($new_tables as $new_table_name => $new_table) {
+      $this->upgradeQueries[$new_table_name . ' set default'] = [];
+
       // Get new table definition.
       $sql_query = "SELECT public.tripal_get_table_ddl('$ref_chado_schema', '$new_table_name', TRUE) AS \"definition\";";
       $new_table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
-      $new_table_definition = $this->parse_table_ddl($new_table_raw_definition);
+      $new_table_definition = $this->parseTableDdl($new_table_raw_definition);
 
       foreach ($new_table_definition['columns'] as $new_column => $new_column_def) {
         // Replace schema name if there.
@@ -1326,12 +1342,13 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
           $this->schemaNameQuoted . '.',
           $new_table_definition['columns'][$new_column]['default']
         );
-        if ($new_default) {
+        if (!empty($new_default)) {
           $sql_query =
             "ALTER TABLE "
             . $this->schemaNameQuoted
-            . ".$new_table_name ALTER COLUMN $new_column SET " . $new_default;
-          $this->upgradeQueries[$new_table_name . ' set default'] = [$sql_query];
+            . ".$new_table_name ALTER COLUMN $new_column SET " . $new_default
+            . ';';
+          $this->upgradeQueries[$new_table_name . ' set default'][] = $sql_query;
         }
       }
     }
@@ -1386,7 +1403,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       ->fetchAll()
     ;
     foreach ($proto_funcs as $proto_func) {
-      $this->upgradeQueries['#drop_functions'][] = $proto_func->drop;
+      $this->upgradeQueries['#drop_functions'][] = $proto_func->drop . ';';
     }
   }
 
@@ -1453,7 +1470,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       if (!isset($this->upgradeQueries[$object_id])) {
         $this->upgradeQueries[$object_id] = [];
       }
-      $this->upgradeQueries[$object_id][] = $func->def;
+      $this->upgradeQueries[$object_id][] = $func->def . ';';
     }
     if ($cleanup) {
       // Get the list of functions not in the official Chado release.
@@ -1607,8 +1624,8 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       if (!isset($this->upgradeQueries[$object_id])) {
         $this->upgradeQueries[$object_id] = [];
       }
-      $this->upgradeQueries[$object_id][] = $aggrfunc->drop;
-      $this->upgradeQueries[$object_id][] = $aggrfunc->def;
+      $this->upgradeQueries[$object_id][] = $aggrfunc->drop . ';';
+      $this->upgradeQueries[$object_id][] = $aggrfunc->def . ';';
       $official_aggregate[$aggrfunc->drop] = TRUE;
     }
 
@@ -1642,7 +1659,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       $dropped = [];
       foreach ($aggrfuncs as $aggrfunc) {
         if (!array_key_exists($aggrfunc->drop, $official_aggregate)) {
-          $this->upgradeQueries['#cleanup'][] = $aggrfunc->drop;
+          $this->upgradeQueries['#cleanup'][] = $aggrfunc->drop . ';';
           $dropped[] = preg_replace('/DROP AGGREGATE IF EXISTS ([^\)]+\))/', '\1', $aggrfunc->drop);
         }
       }
@@ -1731,6 +1748,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
           . "."
           . $view->table_name
           . " IS " . pg_escape_literal($comment->comment)
+          . ';'
         ;
         $this->upgradeQueries[$view->table_name][] = $sql_query;
       }
@@ -1845,7 +1863,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
     $pg_connection = $this->getPgConnection();
     $skip_objects = [];
     $fh = FALSE;
-    if (isset($filename)) {
+    if (!empty($filename)) {
       if (file_exists($filename)) {
         throw new \Exception("Invalid file name '$filename'! File already exists!");
       }
@@ -1892,7 +1910,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         foreach ($upgrade_queries as $sql_query) {
           $result = pg_query($pg_connection, $sql_query);
           if (!$result) {
-            throw new \Exception('Upgrade query failed for query:\n$sql_query\nERROR: ' . pg_last_error());
+            throw new \Exception("Upgrade query failed for query:\n$sql_query\nERROR: " . pg_last_error());
           }
         }
       }
@@ -1935,7 +1953,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
     $sql = file_get_contents($sql_file);
     // Remove any search_path change containing 'chado' as a schema name.
     $sql = preg_replace(
-      '/^(?:(?!\s*--)[^;]*;)*\s*SET\s*search_path\s*=\s*(?:[^;]+,|)chado(,[^;]+|)\s*;/i',
+      '/^(?:(?!\s*--)[^;]*;)*\s*SET\s*search_path\s*=\s*(?:[^;]+,|)chado(,[^;]+|)\s*;/im',
       '',
       $sql
     );
@@ -2005,7 +2023,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       // Get new table definition.
       $sql_query = "SELECT public.tripal_get_table_ddl('$chado_schema', '$table_name', TRUE) AS \"definition\";";
       $table_raw_definition = explode("\n", $connection->query($sql_query)->fetch()->definition);
-      $table_definition = $this->parse_table_ddl($table_raw_definition);
+      $table_definition = $this->parseTableDdl($table_raw_definition);
 
       // Process FK constraints.
       $foreign_keys = [];
