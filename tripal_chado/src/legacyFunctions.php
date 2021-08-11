@@ -89,7 +89,7 @@ function tripal_chado_upgrade_schema($action, $chado_schema = 'chado', $cleanup 
     if ($job) {
       $upgrader->setJob($job);
     }
-    $success = $upgrader->upgrade(1.3, $cleanup, $file);
+    $success = $upgrader->upgrade($chado_schema, '1.3', $cleanup, $file);
   }
   else {
     \Drupal::logger('tripal_chado')->error("NOT SUPPORTED: " . $action);
