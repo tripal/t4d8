@@ -9,7 +9,7 @@ tripal_chado.storage:
 
 tripal_chado.chado_install_form:
   route_name: tripal_chado.chado_install_form
-  title: 'Install Chado'
-  description: 'Installs the Chado database tables, views, etc., inside the current Drupal database.'
+  title: 'Manage Chado'
+  description: 'Installs or manage Chado database instances and manage their integration within Drupal database.'
   parent: tripal_chado.storage
   weight: 30

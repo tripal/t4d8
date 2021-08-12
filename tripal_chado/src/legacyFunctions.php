@@ -45,7 +45,12 @@ function tripal_chado_install_chado($action, $chado_schema = 'chado', $job = NUL
  * @ingroup tripal_chado
  */
 function tripal_chado_integrate_chado($chado_schema = 'chado', $job = NULL) {
-  \Drupal::logger('tripal_chado')->error("NOT IMPLEMENTED YET");
+  if ($chado_schema) {
+    \Drupal::service('tripal_chado.chadoIntegrator')->import($chado_schema);
+  }
+  else {
+    \Drupal::logger('tripal_chado')->error("No schema was provided. Nothing to integrate.");
+  }
 }
 
 /**
