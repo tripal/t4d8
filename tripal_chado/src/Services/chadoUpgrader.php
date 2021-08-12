@@ -418,6 +418,10 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
     while (($i < count($table_ddl))
         && (!preg_match('/^\s*\)\s*;\s*$/', $table_ddl[$i]))
     ) {
+      if (empty($table_ddl[$i])) {
+        ++$i;
+        continue;
+      }
       if (
           preg_match(
             '/^\s*CONSTRAINT\s*([\w\$\x80-\xFF\.]+)\s+(.+?),?\s*$/',
@@ -443,6 +447,8 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         ];
       }
       else {
+        // If it happens, it means the tripal_get_table_ddl() SQL function
+        // changed and this script should be adapted.
         throw new \Exception(
           'Failed to parse unexpected table definition line format for "'
           . $table_ddl[0]
@@ -457,6 +463,10 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
     // Parses indexes.
     if (++$i < count($table_ddl)) {
       while ($i < count($table_ddl)) {
+        if (empty($table_ddl[$i])) {
+          ++$i;
+          continue;
+        }
         // Parse index name for later comparison.
         if (preg_match(
               '/
@@ -483,6 +493,17 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
             'table'  => $match[2],
             'using' => $match[3],
           ];
+        }
+        else {
+          // If it happens, it means the tripal_get_table_ddl() SQL function
+          // changed and this script should be adapted.
+          throw new \Exception(
+            'Failed to parse unexpected table DDL line format for "'
+            . $table_ddl[0]
+            . '": "'
+            . $table_ddl[$i]
+            . '"'
+          );
         }
         ++$i;
       }
@@ -1289,16 +1310,6 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
           $this->upgradeQueries[$new_table_name][] = $sql_query;
         }
 
-        // Add comment.
-        $sql_query =
-          "COMMENT ON TABLE "
-          . $chado_schema_quoted
-          . ".$new_table_name IS "
-          . pg_escape_literal($new_table->comment)
-          . ';'
-        ;
-        $this->upgradeQueries[$new_table_name][] = $sql_query;
-
         // Saves table definition.
         $new_table_definitions[$new_table_name] = $new_table_definition;
 
@@ -1320,14 +1331,29 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
         // Saves table definition.
         $new_table_definitions[$new_table_name] = $new_table_definition;
       }
+
+      // Add comment.
+      $sql_query =
+        "COMMENT ON TABLE "
+        . $chado_schema_quoted
+        . ".$new_table_name IS "
+        . pg_escape_literal($new_table->comment)
+        . ';'
+      ;
+      $this->upgradeQueries[$new_table_name][] = $sql_query;
     }
 
-    // Second loop adds indexes and table contraints.
+    // Second loop adds indexes and table contraints without foreign keys.
     foreach ($new_tables as $new_table_name => $new_table) {
       // Check if table should be skipped.
       if (array_key_exists($new_table_name, $skip_table_column)
           && empty($skip_table_column[$new_table_name])) {
         continue;
+      }
+
+      $upgq_id = $new_table_name . ' 2nd pass';
+      if (!isset($this->upgradeQueries[$upgq_id])) {
+        $this->upgradeQueries[$upgq_id] = [];
       }
 
       $alter_sql = [];
@@ -1336,18 +1362,20 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
       $index_to_skip = [];
 
       foreach ($new_cstr_def as $new_constraint_name => $new_constraint_def) {
-
-        $constraint_def = str_replace(
-          $ref_chado_schema_quoted . '.',
-          $chado_schema_quoted . '.',
-          $new_constraint_def
-        );
-        $alter_sql[] =
-          "ADD CONSTRAINT $new_constraint_name $constraint_def"
-        ;
-        // Skip impplicit indexes.
-        if (preg_match('/(?:^|\s)(?:UNIQUE|PRIMARY\s+KEY)(?:\s|$)/', $constraint_def)) {
-          $index_to_skip[$new_constraint_name] = TRUE;
+        // Skip foreign keys for now.
+        if (!preg_match('/(?:^|\s)FOREIGN\s+KEY(?:\s|$)/', $new_constraint_def)) {
+          $constraint_def = str_replace(
+            $ref_chado_schema_quoted . '.',
+            $chado_schema_quoted . '.',
+            $new_constraint_def
+          );
+          $alter_sql[] =
+            "ADD CONSTRAINT $new_constraint_name $constraint_def"
+          ;
+          // Skip impplicit indexes.
+          if (preg_match('/(?:^|\s)(?:UNIQUE|PRIMARY\s+KEY)(?:\s|$)/', $constraint_def)) {
+            $index_to_skip[$new_constraint_name] = TRUE;
+          }
         }
       }
 
@@ -1360,7 +1388,7 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
           . implode(",\n  ", $alter_sql)
           . ';'
         ;
-        $this->upgradeQueries[$new_table_name][] = $sql_query;
+        $this->upgradeQueries[$upgq_id][] = $sql_query;
       }
 
       // Create new indexes.
@@ -1371,8 +1399,78 @@ class chadoUpgrader extends bulkPgSchemaInstaller {
             $chado_schema_quoted . '.',
             $new_index_def['query']
           );
-          $this->upgradeQueries[$new_table_name][] = $index_def;
+          $this->upgradeQueries[$upgq_id][] = $index_def;
         }
+        // Add comment if one.
+        $sql_query =
+          "SELECT
+            'COMMENT ON INDEX $chado_schema_quoted.' || quote_ident(c.relname) || ' IS ' || quote_literal(d.description) AS \"comment\"
+          FROM pg_class c
+            JOIN pg_namespace n ON (n.oid = c.relnamespace)
+            JOIN pg_index i ON (i.indexrelid = c.oid)
+            JOIN pg_description d ON (d.objoid = c.oid)
+          WHERE
+            c.reltype = 0
+            AND n.nspname = :ref_schema
+            AND c.relname = :index_name;"
+        ;
+        $comment_result = $connection->query(
+            $sql_query,
+            [
+              ':ref_schema' => $ref_chado_schema,
+              ':index_name' => $new_index_name,
+            ]
+          )
+          ->fetch()
+        ;
+        if (!empty($comment_result) && !empty($comment_result->comment)) {
+          $this->upgradeQueries[$upgq_id][] = $comment_result->comment . ';';
+        }
+      }
+    }
+
+    // Third loop adds foreign key contraints.
+    foreach ($new_tables as $new_table_name => $new_table) {
+      // Check if table should be skipped.
+      if (array_key_exists($new_table_name, $skip_table_column)
+          && empty($skip_table_column[$new_table_name])) {
+        continue;
+      }
+
+      $upgq_id = $new_table_name . ' 3rd pass';
+      if (!isset($this->upgradeQueries[$upgq_id])) {
+        $this->upgradeQueries[$upgq_id] = [];
+      }
+
+      $alter_sql = [];
+      $new_table_def = $new_table_definitions[$new_table_name];
+      $new_cstr_def = $new_table_def['constraints'];
+      $index_to_skip = [];
+
+      foreach ($new_cstr_def as $new_constraint_name => $new_constraint_def) {
+        // Only foreign keys.
+        if (preg_match('/(?:^|\s)FOREIGN\s+KEY(?:\s|$)/', $new_constraint_def)) {
+          $constraint_def = str_replace(
+            $ref_chado_schema_quoted . '.',
+            $chado_schema_quoted . '.',
+            $new_constraint_def
+          );
+          $alter_sql[] =
+            "ADD CONSTRAINT $new_constraint_name $constraint_def"
+          ;
+        }
+      }
+
+      // Alter table.
+      if (!empty($alter_sql)) {
+        $sql_query =
+          "ALTER TABLE "
+          . $chado_schema_quoted
+          . ".$new_table_name\n  "
+          . implode(",\n  ", $alter_sql)
+          . ';'
+        ;
+        $this->upgradeQueries[$upgq_id][] = $sql_query;
       }
     }
 

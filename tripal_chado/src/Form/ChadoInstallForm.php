@@ -361,19 +361,23 @@ class ChadoInstallForm extends FormBase {
         '#title' => t('Advanced Options'),
       ];
 
-      // Allow to disable cleanup.
-      $form['advanced']['cleanup'] = [
-        '#type' => 'checkbox',
-        '#title' => t('Remove any extra stuff'),
-        '#description' => t('Removes any extra stuff not in the official Chado 1.3 schema structure. WARNING: if you added custom table or columns, their data will be removed as well.'),
-        '#default_value' => TRUE,
-      ];
+      if (($form_state->getValue('action_to_do'))
+        && ($this::UPGRADE_13_ACTION == $form_state->getValue('action_to_do'))) {
+        // Allow to disable cleanup.
+        $form['advanced']['cleanup'] = [
+          '#type' => 'checkbox',
+          '#title' => t('Remove any extra stuff'),
+          '#description' => t('Removes any extra stuff not in the official Chado 1.3 schema structure. WARNING: if you added custom table or columns, their data will be removed as well.'),
+          '#default_value' => TRUE,
+        ];
 
-      $form['advanced']['to_file'] = [
-        '#type' => 'textfield',
-        '#title' => t('Generate an upgrade SQL script instead of running the upgrade'),
-        '#description' => t('Enter a local path to an unexisting file name that will contain the SQL queries.'),
-      ];
+        // Output to file instead of executing upgrade queries.
+        $form['advanced']['to_file'] = [
+          '#type' => 'textfield',
+          '#title' => t('Generate an upgrade SQL script instead of running the upgrade'),
+          '#description' => t('Enter a local path to an unexisting file name that will contain the SQL queries.'),
+        ];
+      }
 
     }
 
