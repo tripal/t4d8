@@ -258,7 +258,6 @@ class GFF3Importer extends TripalImporter {
   /**
    * @see TripalImporter::formValidate()
    */
-  //public function formValidate($form, &$form_state) {
   public function validateForm(array &$form, FormStateInterface $form_state) { 
     $form_values = $form_state->getValues();
 
@@ -690,22 +689,23 @@ class GFF3Importer extends TripalImporter {
               if ($create_organism) {
                 $feature_organism = (object) chado_insert_record('organism', $values);
                 if (!$feature_organism) {
-                  $this->logMessage("Could not add the organism, '%org', from line %line. Skipping this line.",
-                    [
-                      '%org' => $attr_organism,
-                      '%line' => $line_num,
-                    ], TRIPAL_ERROR);
+                  // $this->logMessage("Could not add the organism, '%org', from line %line. Skipping this line.",
+                  //   [
+                  //     '%org' => $attr_organism,
+                  //     '%line' => $line_num,
+                  //   ], TRIPAL_ERROR);
+                  $this->logger->error("Could not add the organism, '$attr_organism', from line $line_num. Skipping this line.");
                   $skip_feature = 1;
                 }
               }
               else {
-                /*
-                $this->logMessage("The organism attribute '%org' on line %line does not exist. Skipping this line.",
-                  [
-                    '%org' => $attr_organism,
-                    '%line' => $line_num,
-                  ], TRIPAL_ERROR);
-                */
+                
+                // $this->logMessage("The organism attribute '%org' on line %line does not exist. Skipping this line.",
+                //   [
+                //     '%org' => $attr_organism,
+                //     '%line' => $line_num,
+                //   ], TRIPAL_ERROR);
+                
                 $this->logger->error("The organism attribute '$attr_organism' on line $line_num does not exist. 
                   Skipping this line.");
                 $skip_feature = 1;

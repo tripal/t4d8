@@ -2249,3 +2249,4 @@ function hook_chado_get_schema_name_alter($schema_name, $context) {
 function chado_db_select($table, $alias = NULL, array $options = []) {
   return ChadoPrefixExtender::select($table, $alias, $options);
 }
+

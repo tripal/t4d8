@@ -495,6 +495,7 @@ class TripalImporter {
           $file_remote = $this->arguments['files'][$i]['file_remote'];
           $this->logMessage('Download file: !file_remote...', ['!file_remote' => $file_remote]);
 
+
           // If this file is compressed then keepthe .gz extension so we can
           // uncompress it.
           $ext = '';

@@ -1,5 +1,7 @@
 <?php
 
+
+
 /**
  * @file
  * Provides an application programming interface (API) for describing Chado
@@ -223,6 +225,7 @@ function chado_dbschema_exists($chado_schema) {
  * @ingroup tripal_chado_query_api
  */
 function chado_get_schema_name($schema = 'chado') {
+ 
 
   // First we will set our default. This is what will be returned in most cases.
   if ($schema == 'chado') {
