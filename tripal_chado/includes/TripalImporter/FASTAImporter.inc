@@ -218,7 +218,7 @@ class FASTAImporter extends TripalImporter {
     }
     $form['additional']['db']['db_id'] = [
       '#title' => t('External Database'),
-      '#type' => t('select'),
+      '#type' => 'select',
       '#description' => t("Plese choose an external database for which these sequences have a cross reference."),
       '#required' => FALSE,
       '#options' => $dbs,
@@ -239,7 +239,7 @@ class FASTAImporter extends TripalImporter {
     // Advanced references options
     $form['additional']['relationship']['rel_type'] = [
       '#title' => t('Relationship Type'),
-      '#type' => t('select'),
+      '#type' => 'select',
       '#description' => t("Use this option to create associations, or relationships between the
                         features of this FASTA file and existing features in the database. For
                         example, to associate a FASTA file of peptides to existing genes or transcript sequence,
