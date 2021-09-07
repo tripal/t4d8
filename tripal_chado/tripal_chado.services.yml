@@ -3,3 +3,5 @@ services:
         class: Drupal\tripal_chado\Services\chadoInstaller
     tripal_chado.chadorecord:
         class: Drupal\tripal_chado\Services\ChadoRecord          
+    tripal_chado.chadoPreparer:
+        class: Drupal\tripal_chado\Services\chadoPreparer

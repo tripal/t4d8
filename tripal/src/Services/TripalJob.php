@@ -66,6 +66,7 @@ class TripalJob {
    * create() function.
    */
   public function __construct() {
+    $this->messenger = \Drupal::messenger();
   }
 
   /**
@@ -385,7 +386,7 @@ class TripalJob {
       ->condition('job_id', $this->job->job_id)
       ->execute();
 
-      \Drupal::messenger()->addMessage('Job execution failed: ' . $e->getMessage(), 'error');
+      $this->messenger->addError('Job execution failed: ' . $e->getMessage());
     }
   }
 
