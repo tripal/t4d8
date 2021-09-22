@@ -551,7 +551,7 @@ class FASTAImporter extends TripalImporter {
             //   ['!line' => $i], TRIPAL_ERROR);
             $this->logger->error("Regular expression for the feature name finds nothing. Line $i.");
           }
-          elseif (strlen($matches[1]) > $feature_tbl['fields']['name']['length']) {
+          elseif (strlen($matches[1]) > $feature_tbl['fields']['name']['size']) {
             // $this->logMessage("Regular expression retrieves a value too long for the feature name. Line !line.",
             //   ['!line' => $i], TRIPAL_WARNING);
             $this->logger->info("Regular expression retrieves a value too long for the feature name. Line $i.");
@@ -565,7 +565,7 @@ class FASTAImporter extends TripalImporter {
         // then use the first word as the name, otherwise we don't set the name.
         elseif (strcmp($match_type, 'Name') == 0) {
           if (preg_match("/^\s*(.*?)[\s\|].*$/", $defline, $matches)) {
-            if (strlen($matches[1]) > $feature_tbl['fields']['name']['length']) {
+            if (strlen($matches[1]) > $feature_tbl['fields']['name']['size']) {
               // $this->logMessage("Regular expression retrieves a feature name too long for the feature name. Line !line.",
               //   ['!line' => $i], TRIPAL_WARNING);
               $this->logger->info("Regular expression retrieves a feature name too long for the feature name. Line $i.");
@@ -608,7 +608,7 @@ class FASTAImporter extends TripalImporter {
         $accession = "";
         if (!empty($re_accession)) {
           preg_match("/$re_accession/", $defline, $matches);
-          if (strlen($matches[1]) > $dbxref_tbl['fields']['accession']['length']) {
+          if (strlen($matches[1]) > $dbxref_tbl['fields']['accession']['size']) {
             // tripal_report_error('trp-fasta', TRIPAL_WARNING, "WARNING: Regular expression retrieves an accession too long for the feature name. " .
             //   "Cannot add cross reference. Line %line.", [
             //   '%line' => $i,
