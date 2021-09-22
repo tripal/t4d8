@@ -1,7 +1,4 @@
 <?php
-
-
-
 /**
  * @file
  * Provides an application programming interface (API) for describing Chado
