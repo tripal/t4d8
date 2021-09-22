@@ -219,7 +219,7 @@ class FASTAImporter extends TripalImporter {
     $form['additional']['db']['db_id'] = [
       '#title' => t('External Database'),
       '#type' => 'select',
-      '#description' => t("Plese choose an external database for which these sequences have a cross reference."),
+      '#description' => t("Please choose an external database for which these sequences have a cross reference."),
       '#required' => FALSE,
       '#options' => $dbs,
       '#weight' => 1,
