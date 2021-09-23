@@ -55,6 +55,7 @@ class GFF3Importer extends TripalImporter {
     $org_rset = chado_query($sql);
     $organisms = [];
     $organisms[''] = '';
+    // loop through organisms
     while ($organism = $org_rset->fetchObject()) {
       $organisms[$organism->organism_id] = "$organism->genus $organism->species ($organism->common_name)";
     }
