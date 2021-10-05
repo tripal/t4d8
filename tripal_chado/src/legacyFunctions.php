@@ -99,4 +99,17 @@ function tripal_chado_upgrade_schema($action, $chado_schema = 'chado', $cleanup 
   else {
     \Drupal::logger('tripal_chado')->error("NOT SUPPORTED: " . $action);
   }
+
+/**
+ * Prepare Chado Schema
+ *
+ * @ingroup tripal_chado
+ */
+function tripal_chado_prepare_chado($chado_schema = 'chado', $job = NULL) {
+  $preparer = \Drupal::service('tripal_chado.chadoPreparer');
+  if ($job) {
+    $preparer->setJob($job);
+  }
+  $preparer->setSchema($chado_schema);
+  $success = $preparer->prepare();
 }

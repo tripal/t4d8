@@ -7,3 +7,5 @@ services:
         class: Drupal\tripal_chado\Services\chadoIntegrator
     tripal_chado.chadoUpgrader:
         class: Drupal\tripal_chado\Services\chadoUpgrader
+    tripal_chado.chadoPreparer:
+        class: Drupal\tripal_chado\Services\chadoPreparer
