@@ -2074,7 +2074,7 @@ class GFF3Importer extends TripalImporter {
     while ($line = fgets($fh)) {
 
       $line_num++;
-      $size = drupal_strlen($line);
+      $size = mb_strlen($line);
       $this->addItemsHandled($size);
       $num_read += $size;
       $line = trim($line);
