@@ -174,7 +174,6 @@ function tripal_schema() {
 
   // Adds a table for administrative notifications on the dashboard.
   $schema['tripal_admin_notifications'] = tripal_tripal_admin_notifications_schema();
-
   return $schema;
 }
 
