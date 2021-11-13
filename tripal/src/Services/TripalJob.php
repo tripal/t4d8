@@ -739,6 +739,8 @@ class TripalJob {
         "a future release. Please use the TripalLogger service instead",
         ['@function' => 'TripalJob::logMessage']);
 
+    debug_print_backtrace(0,3);
+
     // Generate a translated message.
     $tmessage = t($message, $variables);
 
