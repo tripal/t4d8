@@ -113,7 +113,7 @@ function chado_edit_custom_table($table_id, $table_name, $schema, $skip_if_exist
  * @return void
  */
 function chado_create_custom_table($table, $schema, $skip_if_exists = TRUE, $mview_id = NULL, $redirect = TRUE) {
-// Basic argument checks
+    // Basic argument checks
     if (!$table)
     {
         tripal_report_error('trp_ctables', TRIPAL_ERROR,
@@ -153,7 +153,9 @@ function chado_create_custom_table($table, $schema, $skip_if_exists = TRUE, $mvi
         
         // Create the table if it doesn't exist.
         if (!$table_exists) {
+            // print "Creating the table...";
             $connection->schema()->createTable($chado_dot . $table, $schema);
+            // print "successfully created...\n";
             $created = 1;
         }
 
@@ -162,7 +164,9 @@ function chado_create_custom_table($table, $schema, $skip_if_exists = TRUE, $mvi
             // Drop the table
             $connection->schema()->dropTable($chado_dot . $table);
             // And re-add it
+            // print "Creating the table...";
             $connection->schema()->createTable($chado_dot . $table, $schema);
+            // print "successfully created...\n";
             $recreated = 1;
 
             // TODO the old code unset "referring_tables" from $schema,
@@ -322,6 +326,7 @@ function chado_delete_custom_table($table_id) {
     $transaction = $connection->startTransaction();
 
     try {
+        
         // Get details about this table from tripal_custom_tables
         $query = $connection->select('tripal_custom_tables', 'ct')
             ->fields('ct', array(
@@ -346,8 +351,11 @@ function chado_delete_custom_table($table_id) {
         $chado_schema = chado_get_schema_name('chado'); // Todo - is this really how we want to get the schema name? 
                                                     // Does not seem like it would work with multi-chado instances.
         $chado_dot = $chado_schema . '.';
+
+
         $table_exists = $connection->schema()->tableExists($chado_dot . $table_details->table_name);
 
+        
         // Return errors if the table doesn't exist (either in
         // tripal_custom_tables or in the database itself).
         if (!$table_details OR !$table_exists) {
@@ -360,14 +368,18 @@ function chado_delete_custom_table($table_id) {
         $delisted = $connection->delete('tripal_custom_tables')
             ->condition('table_id',$table_id)
             ->execute();
+        
         // Drop the table from Chado (checking if it exists)
         $deleted = $connection->schema()->dropTable($chado_dot . $table_details->table_name);
+
+        
         if ($delisted AND $deleted) {
             return TRUE;
         }
         else {
             \Drupal::logger('tripal_chado')->error('Could not delete the ". $table_details->table_name ." table');
         }
+        
         
     } catch (Exception $e) {
         tripal_set_message($e,TRIPAL_WARNING);
