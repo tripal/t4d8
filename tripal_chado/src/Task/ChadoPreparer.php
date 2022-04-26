@@ -266,9 +266,9 @@ class ChadoPreparer extends ChadoTaskBase {
     $this->tripal_feature_add_cvs();
 
     // Set the default vocabularies.
-    tripal_set_default_cv('feature', 'type_id', 'sequence');
-    tripal_set_default_cv('featureprop', 'type_id', 'feature_property');
-    tripal_set_default_cv('feature_relationship', 'type_id', 'feature_relationship');
+    tripal_set_default_cv('feature', 'type_id', 'sequence', FALSE, $this->outputSchemas[0]);
+    tripal_set_default_cv('featureprop', 'type_id', 'feature_property', FALSE, $this->outputSchemas[0]);
+    tripal_set_default_cv('feature_relationship', 'type_id', 'feature_relationship', FALSE, $this->outputSchemas[0]);
   }  
 
   /**
@@ -279,26 +279,32 @@ class ChadoPreparer extends ChadoTaskBase {
   function tripal_feature_add_cvs() {
 
     // Add cv for relationship types
-    tripal_insert_cv(
+    chado_insert_cv(
       'feature_relationship',
-      'Contains types of relationships between features.'
+      'Contains types of relationships between features.',
+      [],
+      $this->outputSchemas[0]
     );
 
     // The feature_property CV may already exists. It comes with Chado, but
     // we need to  add it just in case it doesn't get added before the feature
     // module is installed. But as of Tripal v3.0 the Chado version of this
     // vocabulary is no longer loaded by default.
-    tripal_insert_cv(
+    chado_insert_cv(
       'feature_property',
-      'Stores properties about features'
+      'Stores properties about features',
+      [],
+      $this->outputSchemas[0]
     );
 
     // the feature type vocabulary should be the sequence ontology, and even though
     // this ontology should get loaded we will create it here just so that we can
     // set the default vocabulary for the feature.type_id field
-    tripal_insert_cv(
+    chado_insert_cv(
       'sequence',
-      'The Sequence Ontology'
+      'The Sequence Ontology',
+      [],
+      $this->outputSchemas[0]
     );
   }  
 

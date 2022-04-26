@@ -1402,14 +1402,14 @@ function _chado_update_cvtermpath_process_children($cv_id, $root_id, $cvterm_id,
  *
  * @ingroup tripal_legacy_chado_cv_api
  */
-function tripal_set_default_cv($table, $field, $cv_name, $cv_id = FALSE) {
+function tripal_set_default_cv($table, $field, $cv_name, $cv_id = FALSE, $schema_name = 'chado') {
 
   // Get the CV object
   if ($cv_id) {
-    $cv = tripal_get_cv(['cv_id' => $cv_id]);
+    $cv = chado_get_cv(['cv_id' => $cv_id],[], $schema_name);
   }
   else {
-    $cv = tripal_get_cv(['name' => $cv_name]);
+    $cv = chado_get_cv(['name' => $cv_name],[], $schema_name);
   }
 
   if ($cv) {
