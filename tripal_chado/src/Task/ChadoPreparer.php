@@ -264,11 +264,13 @@ class ChadoPreparer extends ChadoTaskBase {
 
     // Add the vocabularies used by the feature module.
     $this->tripal_feature_add_cvs();
+    
+    $output_schema = $this->outputSchemas[0]->getSchemaName();
 
     // Set the default vocabularies.
-    tripal_set_default_cv('feature', 'type_id', 'sequence', FALSE, $this->outputSchemas[0]);
-    tripal_set_default_cv('featureprop', 'type_id', 'feature_property', FALSE, $this->outputSchemas[0]);
-    tripal_set_default_cv('feature_relationship', 'type_id', 'feature_relationship', FALSE, $this->outputSchemas[0]);
+    tripal_set_default_cv('feature', 'type_id', 'sequence', FALSE, $output_schema);
+    tripal_set_default_cv('featureprop', 'type_id', 'feature_property', FALSE, $output_schema);
+    tripal_set_default_cv('feature_relationship', 'type_id', 'feature_relationship', FALSE, $output_schema);
   }  
 
   /**
@@ -277,13 +279,16 @@ class ChadoPreparer extends ChadoTaskBase {
    * @ingroup tripal_pub
    */
   function tripal_feature_add_cvs() {
+    
+    $output_schema = $this->outputSchemas[0]->getSchemaName();
+    
 
     // Add cv for relationship types
     chado_insert_cv(
       'feature_relationship',
       'Contains types of relationships between features.',
       [],
-      $this->outputSchemas[0]
+      $output_schema
     );
 
     // The feature_property CV may already exists. It comes with Chado, but
@@ -294,7 +299,7 @@ class ChadoPreparer extends ChadoTaskBase {
       'feature_property',
       'Stores properties about features',
       [],
-      $this->outputSchemas[0]
+      $output_schema
     );
 
     // the feature type vocabulary should be the sequence ontology, and even though
