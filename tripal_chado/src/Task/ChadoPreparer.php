@@ -309,7 +309,7 @@ class ChadoPreparer extends ChadoTaskBase {
       'sequence',
       'The Sequence Ontology',
       [],
-      $this->outputSchemas[0]
+      $output_schema
     );
   }  
 
