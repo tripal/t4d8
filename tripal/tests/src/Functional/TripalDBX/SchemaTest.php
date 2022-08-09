@@ -370,7 +370,8 @@ class SchemaTest extends KernelTestBase {
     $this->assertFalse($exists, 'Function "dummy()" does not exist.');
 
     // Create a table.
-    $scmock->createTable(
+    $schema = $tdbx->schema();
+    $schema->createTable(
           'table_1',
           [
             "fields" => [
@@ -382,18 +383,18 @@ class SchemaTest extends KernelTestBase {
             ],
           ]
         );
-    $exists = $scmock->tableExists('table_1');
+    $exists = $schema->tableExists('table_1');
     $this->assertTrue($exists, 'Table "table_1" was created.');
 
     // Rename table.
-    $scmock->renameTable('table_1', 'table_1_renamed');
-    $exists = $scmock->tableExists('table_1');
+    $schema->renameTable('table_1', 'table_1_renamed');
+    $exists = $schema->tableExists('table_1');
     $this->assertFalse($exists, 'Table "table_1" renamed into something else as it no longer exists.');
-    $exists = $scmock->tableExists('table_1_renamed');
+    $exists = $schema->tableExists('table_1_renamed');
     $this->assertTrue($exists, 'Table "table_1_renamed" is the new table name since it does exist.');
 
     // Change field.
-    $scmock->changeField(
+    $schema->changeField(
       'table_1_renamed',
       'thing',
       'thing_renamed',
@@ -403,11 +404,11 @@ class SchemaTest extends KernelTestBase {
         "pgsql_type" => "bigint",
       ]
     );
-    $exists = $scmock->fieldExists('table_1_renamed', 'thing_renamed');
+    $exists = $schema->fieldExists('table_1_renamed', 'thing_renamed');
     $this->assertTrue($exists, 'Field "table_1_renamed.thing_renamed" exists.');
 
     // Add an index.
-    $scmock->addIndex(
+    $schema->addIndex(
       'table_1_renamed',
       'table_1_renamed_thing_renamed',
       ['thing_renamed'],
@@ -421,18 +422,18 @@ class SchemaTest extends KernelTestBase {
         ],
       ]
     );
-    $exists = $scmock->indexExists('table_1_renamed', 'table_1_renamed_thing_renamed');
+    $exists = $schema->indexExists('table_1_renamed', 'table_1_renamed_thing_renamed');
     $this->assertTrue($exists, 'Index "table_1_renamed_thing_renamed__idx" exists.');
 
     // Drop Table
-    $success = $scmock->dropTable('table_1_renamed');
+    $success = $schema->dropTable('table_1_renamed');
     $this->assertTrue($success, 'Table "table_1_renamed" dropped.');
-    $exists = $scmock->tableExists('table_1_renamed');
+    $exists = $schema->tableExists('table_1_renamed');
     $this->assertFalse($exists, 'Table "table_1_renamed" does not exist.');
 
     // Get tables.
     $tables = $scmock->getTables(['table']);
-    $this->assertEquals(3, count($tables), 'Got the right number of tables.');
+    $this->assertEquals(2, count($tables), 'Got the right number of tables.');
 
     // Get table definitions.
     $table_def = $scmock->getTableDef('testtable', ['source' => 'database']);
