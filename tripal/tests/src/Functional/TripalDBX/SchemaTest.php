@@ -428,7 +428,7 @@ class SchemaTest extends KernelTestBase {
     $success = $scmock->dropTable('table_1_renamed');
     $this->assertTrue($success, 'Table "table_1_renamed" dropped.');
     $exists = $scmock->tableExists('table_1_renamed');
-    $this->assertFalse($exists, 'Table "table_1_renamed" does not exist.')
+    $this->assertFalse($exists, 'Table "table_1_renamed" does not exist.');
 
     // Get tables.
     $tables = $scmock->getTables(['table']);
