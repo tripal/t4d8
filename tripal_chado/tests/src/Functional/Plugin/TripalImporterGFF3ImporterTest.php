@@ -23,23 +23,7 @@ use GFF3Importer;
  * @group Tripal Chado
  * @group Tripal Chado ChadoStorage
  */
-class TripalImporterGFF3ImporterTest extends BrowserTestBase {
-  // use DBTransaction;
-
-  protected $defaultTheme = 'stable';
-
-  /**
-   * Modules to enable.
-   * @var array
-   */
-  protected static $modules = ['tripal', 'tripal_chado'];
-
-  /**
-   * Schema to do testing out of.
-   * @var string
-   */
-  protected static $schemaName = 'testchado';
-
+class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
 
   /**
    * Confirm basic GFF importer functionality.
