@@ -31,6 +31,7 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
    * @group gff
    */
   public function testGFFImporterSimpleTest() {
+
     $chado = $this->chado;
     // $query = $chado->select('1:cv', 'cv')
     //   ->condition('cv.name', $cvname, '=')
@@ -61,6 +62,7 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
     $importer_manager = \Drupal::service('tripal.importer');
     $gff3_importer = $importer_manager->createInstance('chado_gff3_loader');
     $run_args = [
+      'schema_name' => 'chado',
       'analysis_id' => $analysis_id,
       'organism_id' => $organism_id,
       'use_transaction' => 1,
@@ -80,13 +82,16 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
       'alt_id_attr' => NULL,
       'skip_protein' => NULL,
     ];
+    // $run_args['files'][0]['file_path'] = __DIR__ . '../../../fixtures/gff3_loader/small_gene.gff';
 
+    // print_r(__DIR__);
     $file_details = [
-      'file_local' => __DIR__ . '/../data/small_gene.gff',
+      // 'file_local' => 'modules/t4d8/tripal_chado/tests/fixtures/gff3_loader/small_gene.gff',
+      'file_local' => '../..' . __DIR__ . '/../../../fixtures/gff3_loader/small_gene.gff',
     ];
     $gff3_importer->create($run_args, $file_details);  
     $gff3_importer->run();
-    $gff3_importer->postRun();      
+    $gff3_importer->postRun();
     
     
 
