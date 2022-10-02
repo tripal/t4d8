@@ -34,7 +34,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
  */
 
  class FASTAImporter extends ChadoImporterBase {
- 
+
   /**
    * The name of this loader.  This name will be presented to the site
    * user.
@@ -390,7 +390,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         ':cvname' => 'sequence',
         ':name' => $type,
         ':synonym' => $type,
-      ])->fetchObject();    
+      ])->fetchObject();
     if (!$cvterm) {
       form_set_error('type', t("The Sequence Ontology (SO) term selected for the sequence type is not available in the database. Please check spelling or select another."));
     }
@@ -404,7 +404,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         ':cvname' => 'sequence',
         ':name' => $parent_type,
         ':synonym' => $parent_type,
-      ])->fetchObject();      
+      ])->fetchObject();
       if (!$cvterm) {
         form_set_error('parent_type', t("The Sequence Ontology (SO) term selected for the parent relationship is not available in the database. Please check spelling or select another."));
       }
@@ -533,7 +533,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         ':cvname' => 'sequence',
         ':name' => $parent_type,
         ':synonym' => $parent_type,
-      ])->fetchObject(); 
+      ])->fetchObject();
 
       if (!$parentcvterm) {
         // $this->logMessage("Cannot find the parent term type: '!type'",
@@ -555,7 +555,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         ':cvname' => 'sequence',
         ':name' => $rel_type,
         ':synonym' => $rel_type,
-      ])->fetchObject();      
+      ])->fetchObject();
       if (!$relcvterm) {
         // $this->logMessage("Cannot find the relationship term type: '!type'",
         //   ['!type' => $relcvterm], TRIPAL_ERROR);
@@ -608,7 +608,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
           elseif (strlen($matches[1]) > $feature_tbl['fields']['name']['length']) {
             // $this->logMessage("Regular expression retrieves a value too long for the feature name. Line !line.",
             //   ['!line' => $i], TRIPAL_WARNING);
-            $this->logger->warning("Regular expression retrieves a value too long for the feature name. Line $i.");              
+            $this->logger->warning("Regular expression retrieves a value too long for the feature name. Line $i.");
           }
           else {
             $name = trim($matches[1]);
@@ -622,7 +622,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
             if (strlen($matches[1]) > $feature_tbl['fields']['name']['length']) {
               //   $this->logMessage("Regular expression retrieves a feature name too long for the feature name. Line !line.",
               //     ['!line' => $i], TRIPAL_WARNING);
-              $this->logger->warning("Regular expression retrieves a feature name too long for the feature name. Line $i.");    
+              $this->logger->warning("Regular expression retrieves a feature name too long for the feature name. Line $i.");
             }
             else {
               $name = trim($matches[1]);
@@ -630,7 +630,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
           }
           else {
             // $this->logMessage("Cannot find a feature name. Line !line.", ['!line' => $i], TRIPAL_WARNING);
-            $this->logger->warning("Cannot find a feature name. Line $i.");    
+            $this->logger->warning("Cannot find a feature name. Line $i.");
           }
         }
 
@@ -640,7 +640,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
           if (!preg_match("/$re_uname/", $defline, $matches)) {
             // $this->logMessage("Regular expression for the feature unique name finds nothing. Line !line.",
             //   ['!line' => $i], TRIPAL_ERROR);
-            $this->logger->error("Regular expression for the feature unique name finds nothing. Line $i."); 
+            $this->logger->error("Regular expression for the feature unique name finds nothing. Line $i.");
           }
           $uname = trim($matches[1]);
         }
@@ -654,7 +654,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
           else {
             // $this->logMessage("Cannot find a feature unique name. Line !line.",
             //   ['!line' => $i], TRIPAL_ERROR);
-            $this->logger->error("Cannot find a feature unique name. Line $i."); 
+            $this->logger->error("Cannot find a feature unique name. Line $i.");
           }
         }
 
@@ -707,9 +707,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
 
     // Now that we know where the sequences are in the file we need to add them.
     // $this->logMessage("Step 2: Importing sequences...");
-    $this->logger->notice("Step 2: Importing sequences..."); 
+    $this->logger->notice("Step 2: Importing sequences...");
     // $this->logMessage("Found !num_seqs sequence(s).", ['!num_seqs' => $num_seqs]);
-    $this->logger->notice("Found $num_seqs sequence(s)."); 
+    $this->logger->notice("Found $num_seqs sequence(s).");
     $this->setTotalItems($num_seqs);
     $this->setItemsHandled(0);
     for ($j = 0; $j < $num_seqs; $j++) {
@@ -747,9 +747,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
         'feature_id',
       ], $values);
       if (count($results) > 1) {
-        $this->logMessage("Multiple features exist with the name '!name' of type '!type' for the organism.  skipping",
-          ['!name' => $name, '!type' => $cvterm->name], TRIPAL_ERROR);
-          $this->logger->error("Multiple features exist with the name '$name' of type '" . $cvterm->name . "' for the organism.  skipping"); 
+          // $this->logMessage("Multiple features exist with the name '!name' of type '!type' for the organism.  skipping",
+          //   ['!name' => $name, '!type' => $cvterm->name], TRIPAL_ERROR);
+          $this->logger->error("Multiple features exist with the name '$name' of type '" . $cvterm->name . "' for the organism.  skipping");
         return 0;
       }
       if (count($results) == 1) {
@@ -767,9 +767,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
 
       $results = chado_select_record('feature', ['feature_id'], $values);
       if (count($results) > 1) {
-        $this->logMessage("Multiple features exist with the name '!name' of type '!type' for the organism.  skipping",
-          ['!name' => $name, '!type' => $cvterm->name], TRIPAL_WARNING);
-        $this->logger->warning("Multiple features exist with the name '$name' of type '" . $cvterm->name . "' for the organism.  skipping");        
+        // $this->logMessage("Multiple features exist with the name '!name' of type '!type' for the organism.  skipping",
+        //   ['!name' => $name, '!type' => $cvterm->name], TRIPAL_WARNING);
+        $this->logger->warning("Multiple features exist with the name '$name' of type '" . $cvterm->name . "' for the organism.  skipping");
         return 0;
       }
       if (count($results) == 1) {
@@ -784,7 +784,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         //     '!uname' => $uname,
         //     '!type' => drupal_strtolower($match_type),
         //   ], TRIPAL_WARNING);
-          $this->logger->warning("Feature already exists '$name' ('$uname') while matching on " . drupal_strtolower($match_type) . ". Skipping insert.");
+        $this->logger->warning("Feature already exists '$name' ('$uname') while matching on " . drupal_strtolower($match_type) . ". Skipping insert.");
         return 0;
       }
     }
@@ -809,10 +809,11 @@ use Drupal\Core\Ajax\ReplaceCommand;
       ];
       $success = chado_insert_record('feature', $values);
       if (!$success) {
-        $this->logMessage("Failed to insert feature '!name (!uname)'", [
-          '!name' => $name,
-          '!uname' => $uname,
-        ], TRIPAL_ERROR);
+        // $this->logMessage("Failed to insert feature '!name (!uname)'", [
+        //   '!name' => $name,
+        //   '!uname' => $uname,
+        // ], TRIPAL_ERROR);
+        $this->logger->error("Failed to insert feature '$name ($uname)'");
         return 0;
       }
 
@@ -828,10 +829,11 @@ use Drupal\Core\Ajax\ReplaceCommand;
         $feature = $results[0];
       }
       else {
-        $this->logMessage("Failed to retrieve newly inserted feature '!name (!uname)'", [
-          '!name' => $name,
-          '!uname' => $uname,
-        ], TRIPAL_ERRORR);
+        // $this->logMessage("Failed to retrieve newly inserted feature '!name (!uname)'", [
+        //   '!name' => $name,
+        //   '!uname' => $uname,
+        // ], TRIPAL_ERROR);
+        $this->logger->error("Failed to retrieve newly inserted feature '$name ($uname)'");
         return 0;
       }
 
@@ -841,8 +843,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
 
     // if we don't have a feature and the user wants to do an update then fail
     if (!isset($feature) and (strcmp($method, 'Update only') == 0 or strcmp($method, 'Insert and update') == 0)) {
-      $this->logMessage("Failed to find feature '!name' ('!uname') while matching on " . drupal_strtolower($match_type) . ".",
-        ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
+      // $this->logMessage("Failed to find feature '!name' ('!uname') while matching on " . drupal_strtolower($match_type) . ".",
+      //   ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
+      $this->logger->error("Failed to find feature '$name' ('$uname') while matching on " . drupal_strtolower($match_type) . ".");
       return 0;
     }
 
@@ -867,13 +870,15 @@ use Drupal\Core\Ajax\ReplaceCommand;
           ];
           $results = chado_select_record('feature', ['feature_id'], $values);
           if (count($results) > 0) {
-            $this->logMessage("Cannot update the feature '!name' with a uniquename of '!uname' and type of '!type' as it " .
-              "conflicts with an existing feature with the same uniquename and type.",
-              [
-                '!name' => $name,
-                '!uname' => $uname,
-                '!type' => $cvterm->name,
-              ], TRIPAL_ERROR);
+            // $this->logMessage("Cannot update the feature '!name' with a uniquename of '!uname' and type of '!type' as it " .
+            //   "conflicts with an existing feature with the same uniquename and type.",
+            //   [
+            //     '!name' => $name,
+            //     '!uname' => $uname,
+            //     '!type' => $cvterm->name,
+            //   ], TRIPAL_ERROR);
+            $this->logger->error("Cannot update the feature '$name' with a uniquename of '$uname' and type of '" . $cvterm->name . "' as it " .
+            "conflicts with an existing feature with the same uniquename and type.");
             return 0;
           }
 
@@ -888,8 +893,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
           // perform the update
           $success = chado_update_record('feature', $match, $values);
           if (!$success) {
-            $this->logMessage("Failed to update feature '!name' ('!name')",
-              ['!name' => $name, '!uiname' => $uname], TRIPAL_ERROR);
+            // $this->logMessage("Failed to update feature '!name' ('!name')",
+            //   ['!name' => $name, '!uiname' => $uname], TRIPAL_ERROR);
+            $this->logger->error("Failed to update feature '$name' ('$name')");
             return 0;
           }
         }
@@ -909,8 +915,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
           ];
           $success = chado_update_record('feature', $match, $values);
           if (!$success) {
-            $this->logMessage("Failed to update feature '!name' ('!name')",
-              ['!name' => $name, '!uiname' => $uname], TRIPAL_ERROR);
+            // $this->logMessage("Failed to update feature '!name' ('!name')",
+            //   ['!name' => $name, '!uiname' => $uname], TRIPAL_ERROR);
+            $this->logger->error("Failed to update feature '$name' ('$name')");
             return 0;
           }
         }
@@ -931,8 +938,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
       if (count($results) == 0) {
         $success = chado_insert_record('analysisfeature', $values);
         if (!$success) {
-          $this->logMessage("Failed to associate analysis and feature '!name' ('!name')",
-            ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
+          // $this->logMessage("Failed to associate analysis and feature '!name' ('!name')",
+          //   ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
+          $this->logger->error("Failed to associate analysis and feature '$name' ('$name')");
           return 0;
         }
       }
@@ -951,8 +959,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
       if (count($results) == 0) {
         $results = chado_insert_record('dbxref', $values);
         if (!$results) {
-          $this->logMessage("Failed to add database accession '!accession'",
-            ['!accession' => $accession], TRIPAL_ERROR);
+          // $this->logMessage("Failed to add database accession '!accession'",
+          //   ['!accession' => $accession], TRIPAL_ERROR);
+          $this->logger->error("Failed to add database accession '$accession'");
           return 0;
         }
         $results = chado_select_record('dbxref', ['dbxref_id'], $values);
@@ -960,8 +969,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
           $dbxref = $results[0];
         }
         else {
-          $this->logMessage("Failed to retrieve newly inserted dbxref '!name (!uname)'",
-            ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
+          // $this->logMessage("Failed to retrieve newly inserted dbxref '!name (!uname)'",
+          //   ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
+          $this->logger->error("Failed to retrieve newly inserted dbxref '$name ($uname)'");
           return 0;
         }
       }
@@ -978,8 +988,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
       if (count($results) == 0) {
         $success = chado_insert_record('feature_dbxref', $values);
         if (!$success) {
-          $this->logMessage("Failed to add associate database accession '!accession' with feature",
-            ['!accession' => $accession], TRIPAL_ERROR);
+          // $this->logMessage("Failed to add associate database accession '!accession' with feature",
+          //   ['!accession' => $accession], TRIPAL_ERROR);
+          $this->logger->error("Failed to add associate database accession '$accession' with feature");
           return 0;
         }
       }
@@ -994,8 +1005,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
       ];
       $results = chado_select_record('feature', ['feature_id'], $values);
       if (count($results) != 1) {
-        $this->logMessage("Cannot find a unique feature for the parent '!parent' of type '!type' for the feature.",
-          ['!parent' => $parent, '!type' => $parent_type], TRIPAL_ERROR);
+        // $this->logMessage("Cannot find a unique feature for the parent '!parent' of type '!type' for the feature.",
+        //   ['!parent' => $parent, '!type' => $parent_type], TRIPAL_ERROR);
+        $this->logger->error("Cannot find a unique feature for the parent '$parent' of type '$parent_type' for the feature.");
         return 0;
       }
       $parent_feature = $results[0];
@@ -1010,8 +1022,9 @@ use Drupal\Core\Ajax\ReplaceCommand;
       if (count($results) == 0) {
         $success = chado_insert_record('feature_relationship', $values);
         if (!$success) {
-          $this->logMessage("Failed to add associate database accession '!accession' with feature",
-            ['!accession' => $accession], TRIPAL_ERROR);
+          // $this->logMessage("Failed to add associate database accession '!accession' with feature",
+          //   ['!accession' => $accession], TRIPAL_ERROR);
+          $this->logger->error("Failed to add associate database accession '$accession' with feature");  
           return 0;
         }
       }
@@ -1071,7 +1084,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         $success = $chado->query($sql, [
           ':feature_id' => $feature_id,
           ':chunk' => $chunk,
-        ]);        
+        ]);
         if (!$success) {
           return FALSE;
         }
@@ -1100,7 +1113,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
       $success = $chado->query($sql, [
         ':feature_id' => $feature_id,
         ':chunk' => $chunk,
-      ]);      
+      ]);
       if (!$success) {
         return FALSE;
       }
@@ -1116,7 +1129,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
     $chado->query($sql, [':feature_id' => $feature_id]);
 
   }
-  
+
   /**
    * {@inheritdoc}
    */
@@ -1129,5 +1142,5 @@ use Drupal\Core\Ajax\ReplaceCommand;
    */
   public function formSubmit($form, &$form_state) {
 
-  }   
+  }
  }
