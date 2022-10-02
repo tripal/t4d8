@@ -9,7 +9,7 @@ use Drupal\Core\Ajax\InvokeCommand;
 use Drupal\Core\Ajax\ReplaceCommand;
 
 /**
- * GFF3 Importer implementation of the TripalImporterBase.
+ * FASTA Importer implementation of the TripalImporterBase.
  *
  *  @TripalImporter(
  *    id = "chado_fasta_loader",
@@ -574,7 +574,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
     $filesize = filesize($file_path);
     $fh = fopen($file_path, 'r');
     if (!$fh) {
-      throw new Exception(t("Cannot open file: !dfile", ['!dfile' => $file_path]));
+      throw new \Exception(t("Cannot open file: !dfile", ['!dfile' => $file_path]));
     }
     $num_read = 0;
 
