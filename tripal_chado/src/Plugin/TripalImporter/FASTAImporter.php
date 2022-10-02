@@ -12,7 +12,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
  * GFF3 Importer implementation of the TripalImporterBase.
  *
  *  @TripalImporter(
- *    id = "chado_gff3_loader",
+ *    id = "chado_fasta_loader",
  *    label = @Translation("Chado FASTA File Loader"),
  *    description = @Translation("Import a FASTA file into Chado"),
  *    file_types = {"fasta","txt","fa","aa","pep","nuc","faa","fna"},
@@ -89,7 +89,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
   /**
    * Indicates the methods that the file uploader will support.
    */
-  public static $methods = [
+  public $methods = [
     // Allow the user to upload a file to the server.
     'file_upload' => TRUE,
     // Allow the user to provide the path on the Tripal server for the file.
@@ -169,14 +169,14 @@ use Drupal\Core\Ajax\ReplaceCommand;
     ];
 
     // Additional Options
-    $form['additional'] = [
+    $form['additional_options'] = [
       '#type' => 'fieldset',
       '#title' => t('Additional Options'),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     ];
 
-    $form['additional']['re_help'] = [
+    $form['additional_options']['re_help'] = [
       '#type' => 'item',
       '#value' => t('A regular expression is an advanced method for extracting
          information from a string of text. Your FASTA file may contain both a
@@ -188,7 +188,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
          lines of the FASTA file
          as the name or unique name of the feature.'),
     ];
-    $form['additional']['re_name'] = [
+    $form['additional_options']['re_name'] = [
       '#type' => 'textfield',
       '#title' => t('Regular expression for the name'),
       '#required' => FALSE,
@@ -199,7 +199,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
          definition lines begin with the ">" symbol.  You do not need to incldue
          this symbol in your regular expression.'),
     ];
-    $form['additional']['re_uname'] = [
+    $form['additional_options']['re_uname'] = [
       '#type' => 'textfield',
       '#title' => t('Regular expression for the unique name'),
       '#required' => FALSE,
@@ -212,13 +212,13 @@ use Drupal\Core\Ajax\ReplaceCommand;
     ];
 
     // Advanced database cross reference options.
-    $form['additional']['db'] = [
+    $form['additional_options']['db'] = [
       '#type' => 'fieldset',
       '#title' => t('External Database Reference'),
       '#weight' => 6,
       '#collapsed' => TRUE,
     ];
-    $form['additional']['db']['re_accession'] = [
+    $form['additional_options']['db']['re_accession'] = [
       '#type' => 'textfield',
       '#title' => t('Regular expression for the accession'),
       '#required' => FALSE,
@@ -235,7 +235,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
     while ($db = $db_rset->fetchObject()) {
       $dbs[$db->db_id] = "$db->name";
     }
-    $form['additional']['db']['db_id'] = [
+    $form['additional_options']['db']['db_id'] = [
       '#title' => t('External Database'),
       '#type' => t('select'),
       '#description' => t("Plese choose an external database for which these sequences have a cross reference."),
@@ -244,7 +244,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
       '#weight' => 1,
     ];
 
-    $form['additional']['relationship'] = [
+    $form['additional_options']['relationship'] = [
       '#type' => 'fieldset',
       '#title' => t('Relationships'),
       '#weight' => 6,
@@ -256,7 +256,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
     $rels['derives_from'] = 'produced by (derives from)';
 
     // Advanced references options
-    $form['additional']['relationship']['rel_type'] = [
+    $form['additional_options']['relationship']['rel_type'] = [
       '#title' => t('Relationship Type'),
       '#type' => 'select',
       '#description' => t("Use this option to create associations, or relationships between the
@@ -267,7 +267,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
       '#options' => $rels,
       '#weight' => 5,
     ];
-    $form['additional']['relationship']['re_subject'] = [
+    $form['additional_options']['relationship']['re_subject'] = [
       '#type' => 'textfield',
       '#title' => t('Regular expression for the parent'),
       '#required' => FALSE,
@@ -278,7 +278,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
                          same as the loaded feature name.'),
       '#weight' => 6,
     ];
-    $form['additional']['relationship']['parent_type'] = [
+    $form['additional_options']['relationship']['parent_type'] = [
       '#type' => 'textfield',
       '#title' => t('Parent Type'),
       '#required' => FALSE,
