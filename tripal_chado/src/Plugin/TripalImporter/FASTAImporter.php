@@ -32,31 +32,30 @@ use Drupal\Core\Ajax\ReplaceCommand;
  *    callback_path = "",
  *  )
  */
-
  class FASTAImporter extends ChadoImporterBase {
 
   /**
    * The name of this loader.  This name will be presented to the site
    * user.
    */
-  public static $name = 'Chado FASTA Loader';
+  public $name = 'Chado FASTA Loader';
 
   /**
    * The machine name for this loader. This name will be used to construct
    * the URL for the loader.
    */
-  public static $machine_name = 'chado_fasta_loader';
+  public $machine_name = 'chado_fasta_loader';
 
   /**
    * A brief description for this loader.  This description will be
    * presented to the site user.
    */
-  public static $description = 'Load sequences from a multi-FASTA file into Chado';
+  public $description = 'Load sequences from a multi-FASTA file into Chado';
 
   /**
    * An array containing the extensions of allowed file types.
    */
-  public static $file_types = [
+  public $file_types = [
     'fasta',
     'txt',
     'fa',
@@ -72,18 +71,18 @@ use Drupal\Core\Ajax\ReplaceCommand;
    * Provides information to the user about the file upload.  Typically this
    * may include a description of the file types allowed.
    */
-  public static $upload_description = 'Please provide the FASTA file. The file must have a .fasta extension.';
+  public $upload_description = 'Please provide the FASTA file. The file must have a .fasta extension.';
 
   /**
    * The title that should appear above the file upload section.
    */
-  public static $upload_title = 'FASTA Upload';
+  public $upload_title = 'FASTA Upload';
 
   /**
    * Text that should appear on the button at the bottom of the importer
    * form.
    */
-  public static $button_text = 'Import FASTA file';
+  public $button_text = 'Import FASTA file';
 
 
   /**
@@ -102,9 +101,10 @@ use Drupal\Core\Ajax\ReplaceCommand;
    * @see TripalImporter::form()
    */
   public function form($form, &$form_state) {
-    $chado = $this->getChadoConnection();
     // Always call the parent form to ensure Chado is handled properly.
-    $form = parent::form($form, $form_state);
+    $form = parent::form($form, $form_state);    
+    $chado = $this->getChadoConnection();
+
 
     // get the list of organisms
     $organisms = chado_get_organism_select_options(FALSE);
@@ -603,11 +603,12 @@ use Drupal\Core\Ajax\ReplaceCommand;
           if (!preg_match("/$re_name/", $defline, $matches)) {
             // $this->logMessage("Regular expression for the feature name finds nothing. Line !line.",
             //   ['!line' => $i], TRIPAL_ERROR);
-              $this->logger->error("Regular expression for the feature name finds nothing. Line $i.");
+            $this->logger->error("Regular expression for the feature name finds nothing. Line $i.");
           }
           elseif (strlen($matches[1]) > $feature_tbl['fields']['name']['length']) {
             // $this->logMessage("Regular expression retrieves a value too long for the feature name. Line !line.",
             //   ['!line' => $i], TRIPAL_WARNING);
+            $this->logger->warning('Line:' . $line . "\n");
             $this->logger->warning("Regular expression retrieves a value too long for the feature name. Line $i.");
           }
           else {
@@ -622,6 +623,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
             if (strlen($matches[1]) > $feature_tbl['fields']['name']['length']) {
               //   $this->logMessage("Regular expression retrieves a feature name too long for the feature name. Line !line.",
               //     ['!line' => $i], TRIPAL_WARNING);
+              $this->logger->warning('Line:' . $line . "\n");
               $this->logger->warning("Regular expression retrieves a feature name too long for the feature name. Line $i.");
             }
             else {
