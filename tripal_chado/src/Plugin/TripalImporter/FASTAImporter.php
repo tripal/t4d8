@@ -237,7 +237,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
     }
     $form['additional_options']['db']['db_id'] = [
       '#title' => t('External Database'),
-      '#type' => t('select'),
+      '#type' => 'select',
       '#description' => t("Plese choose an external database for which these sequences have a cross reference."),
       '#required' => FALSE,
       '#options' => $dbs,
@@ -300,7 +300,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
     $form_state_values = $form_state->getValues();
 
     // UNUSED VARIABLES DETECTED BY IDE (Rish 10/04/2022)
-    $organism_id = $form_state['values']['organism_id'];
+    $organism_id = $form_state_values['organism_id'];
 
 
     $type = trim($form_state_values['seqtype']);
@@ -784,7 +784,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         //     '!uname' => $uname,
         //     '!type' => drupal_strtolower($match_type),
         //   ], TRIPAL_WARNING);
-        $this->logger->warning("Feature already exists '$name' ('$uname') while matching on " . drupal_strtolower($match_type) . ". Skipping insert.");
+        $this->logger->warning("Feature already exists '$name' ('$uname') while matching on " . strtolower($match_type) . ". Skipping insert.");
         return 0;
       }
     }
@@ -845,7 +845,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
     if (!isset($feature) and (strcmp($method, 'Update only') == 0 or strcmp($method, 'Insert and update') == 0)) {
       // $this->logMessage("Failed to find feature '!name' ('!uname') while matching on " . drupal_strtolower($match_type) . ".",
       //   ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
-      $this->logger->error("Failed to find feature '$name' ('$uname') while matching on " . drupal_strtolower($match_type) . ".");
+      $this->logger->error("Failed to find feature '$name' ('$uname') while matching on " . strtolower($match_type) . ".");
       return 0;
     }
 
@@ -1141,6 +1141,5 @@ use Drupal\Core\Ajax\ReplaceCommand;
    * {@inheritdoc}
    */
   public function formSubmit($form, &$form_state) {
-
   }
  }
