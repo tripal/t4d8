@@ -605,7 +605,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
             //   ['!line' => $i], TRIPAL_ERROR);
             $this->logger->error("Regular expression for the feature name finds nothing. Line $i.");
           }
-          elseif (strlen($matches[1]) > $feature_tbl['fields']['name']['length']) {
+          elseif (strlen($matches[1]) > $feature_tbl['fields']['name']['size']) {
             // $this->logMessage("Regular expression retrieves a value too long for the feature name. Line !line.",
             //   ['!line' => $i], TRIPAL_WARNING);
             $this->logger->warning('Line:' . $line . "\n");
@@ -619,11 +619,11 @@ use Drupal\Core\Ajax\ReplaceCommand;
         // If the match_type is name and no regular expression was provided
         // then use the first word as the name, otherwise we don't set the name.
         elseif (strcmp($match_type, 'Name') == 0) {
+          echo 'defline:' . $defline . "\n";
           if (preg_match("/^\s*(.*?)[\s\|].*$/", $defline, $matches)) {
-            if (strlen($matches[1]) > $feature_tbl['fields']['name']['length']) {
+            if (strlen($matches[1]) > $feature_tbl['fields']['name']['size']) {
               //   $this->logMessage("Regular expression retrieves a feature name too long for the feature name. Line !line.",
               //     ['!line' => $i], TRIPAL_WARNING);
-              $this->logger->warning('Line:' . $line . "\n");
               $this->logger->warning("Regular expression retrieves a feature name too long for the feature name. Line $i.");
             }
             else {
@@ -664,7 +664,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         $accession = "";
         if (!empty($re_accession)) {
           preg_match("/$re_accession/", $defline, $matches);
-          if (strlen($matches[1]) > $dbxref_tbl['fields']['accession']['length']) {
+          if (strlen($matches[1]) > $dbxref_tbl['fields']['accession']['size']) {
             tripal_report_error('trp-fasta', TRIPAL_WARNING, "WARNING: Regular expression retrieves an accession too long for the feature name. " .
               "Cannot add cross reference. Line %line.", [
               '%line' => $i,
@@ -786,7 +786,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         //     '!uname' => $uname,
         //     '!type' => drupal_strtolower($match_type),
         //   ], TRIPAL_WARNING);
-        $this->logger->warning("Feature already exists '$name' ('$uname') while matching on " . strtolower($match_type) . ". Skipping insert.");
+        $this->logger->warning("Feature already exists '$name' ('$uname') while matching on " . mb_strtolower($match_type) . ". Skipping insert.");
         return 0;
       }
     }
@@ -847,7 +847,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
     if (!isset($feature) and (strcmp($method, 'Update only') == 0 or strcmp($method, 'Insert and update') == 0)) {
       // $this->logMessage("Failed to find feature '!name' ('!uname') while matching on " . drupal_strtolower($match_type) . ".",
       //   ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
-      $this->logger->error("Failed to find feature '$name' ('$uname') while matching on " . strtolower($match_type) . ".");
+      $this->logger->error("Failed to find feature '$name' ('$uname') while matching on " . mb_strtolower($match_type) . ".");
       return 0;
     }
 
