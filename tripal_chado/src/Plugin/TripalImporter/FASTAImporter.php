@@ -103,7 +103,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
   public function form($form, &$form_state) {
     // Always call the parent form to ensure Chado is handled properly.
     $form = parent::form($form, $form_state);    
-    $chado = $this->getChadoConnection();
+    $chado = \Drupal::service('tripal_chado.database');
 
 
     // get the list of organisms
@@ -118,14 +118,8 @@ use Drupal\Core\Ajax\ReplaceCommand;
 
     // get the sequence ontology CV ID
     $values = ['name' => 'sequence'];
-    // $cv = chado_select_record('cv', ['cv_id'], $values);
-    $cv = $this->chado->select('cv')
-          ->fields('cv_id')
-          ->condition('name', 'sequence')
-          ->execute()
-          ->fetchObject();
-    // $cv_id = $cv[0]->cv_id;
-    $cv_id = $cv->cv_id;
+    $cv = chado_select_record('cv', ['cv_id'], $values);
+    $cv_id = $cv[0]->cv_id;
     
 
     $form['seqtype'] = [
@@ -302,7 +296,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
    * @see TripalImporter::formValidate()
    */
   public function formValidate($form, &$form_state) {
-    $chado = $this->getChadoConnection();
+    $chado = $connection = \Drupal::service('tripal_chado.database');
     // Get vales from form_state
     $form_state_values = $form_state->getValues();
 
