@@ -118,8 +118,15 @@ use Drupal\Core\Ajax\ReplaceCommand;
 
     // get the sequence ontology CV ID
     $values = ['name' => 'sequence'];
-    $cv = chado_select_record('cv', ['cv_id'], $values);
-    $cv_id = $cv[0]->cv_id;
+    // $cv = chado_select_record('cv', ['cv_id'], $values);
+    $cv = $this->chado->select('cv')
+          ->fields('cv_id')
+          ->condition('name', 'sequence')
+          ->execute()
+          ->fetchObject();
+    // $cv_id = $cv[0]->cv_id;
+    $cv_id = $cv->cv_id;
+    
 
     $form['seqtype'] = [
       '#type' => 'textfield',
@@ -942,7 +949,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         if (!$success) {
           // $this->logMessage("Failed to associate analysis and feature '!name' ('!name')",
           //   ['!name' => $name, '!uname' => $uname], TRIPAL_ERROR);
-          $this->logger->error("Failed to associate analysis and feature '$name' ('$name')");
+          $this->logger->error("Failed to associate analysis and feature '$name' ('$uname')");
           return 0;
         }
       }
