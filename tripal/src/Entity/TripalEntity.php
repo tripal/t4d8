@@ -36,11 +36,10 @@ use Drupal\field\Entity\FieldConfig;
  *     },
  *     "access" = "Drupal\tripal\Access\TripalEntityAccessControlHandler",
  *     "route_provider" = {
- *       "html" = "Drupal\tripal\TripalEntityHtmlRouteProvider",
+ *       "html" = "Drupal\tripal\Routing\TripalEntityHtmlRouteProvider",
  *     },
  *   },
  *   base_table = "tripal_entity",
- *   admin_permission = "access tripal content overview",
  *   entity_keys = {
  *     "id" = "id",
  *     "bundle" = "type",
@@ -78,7 +77,7 @@ class TripalEntity extends ContentEntityBase implements TripalEntityInterface {
    *
    * @param array $values
    *   - *title: the title of the entity.
-   *   - *uid: the user_id of the user who authored the content.
+   *   - *user_id: the user_id of the user who authored the content.
    *   - *type: the type of tripal entity this is (e.g. bio_data_1)
    *   - status: whether the entity is published or not (boolean)
    *   - created: the unix timestamp for when this content was created.
@@ -114,13 +113,7 @@ class TripalEntity extends ContentEntityBase implements TripalEntityInterface {
    * {@inheritdoc}
    */
   public function label() {
-    $title = $this->title->getValue();
-    if ($title) {
-      return $title[0]['value'];
-    }
-    else {
-      return '';
-    }
+    return $this->getTitle();
   }
 
   /**
