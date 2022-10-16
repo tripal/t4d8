@@ -531,7 +531,7 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
   // Check if CV already exists
   //$cv = chado_get_cv(['name' => $cvname], [], $schema_name); // BEFOREOPT: 5.9ms
   // OPT: 5.3ms
-  $sql_cv = "SELECT cv_id FROM {cv} WHERE name = :name LIMIT 1";
+  $sql_cv = "SELECT cv_id FROM {1:cv} WHERE name = :name LIMIT 1";
   $results_cv = chado_query($sql_cv, [':name' => $cvname], [], $schema_name);
   $cv = null;
   foreach ($results_cv as $row_cv) {
@@ -554,10 +554,10 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
   $cvtermsql = "
     SELECT CVT.name, CVT.cvterm_id, CV.cv_id, CV.name as cvname,
       DB.name as dbname, DB.db_id, DBX.accession
-    FROM {cvterm} CVT
-      INNER JOIN {dbxref} DBX on CVT.dbxref_id = DBX.dbxref_id
-      INNER JOIN {db} DB on DBX.db_id = DB.db_id
-      INNER JOIN {cv} CV on CV.cv_id = CVT.cv_id
+    FROM {1:cvterm} CVT
+      INNER JOIN {1:dbxref} DBX on CVT.dbxref_id = DBX.dbxref_id
+      INNER JOIN {1:db} DB on DBX.db_id = DB.db_id
+      INNER JOIN {1:cv} CV on CV.cv_id = CVT.cv_id
     WHERE DBX.accession = :accession and DB.name = :name
   ";
   // Add the database. The function will just return the DB object if the

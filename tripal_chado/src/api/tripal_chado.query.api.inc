@@ -454,7 +454,9 @@ function chado_set_active($dbname = 'default', $chado_schema_name = NULL) {
  * @ingroup tripal_chado_query_api
  */
 function chado_insert_record($table, $values, $options = [], $chado_schema_name = NULL) {
-
+  if(substr($table,0,2) != '1:') {
+    $table = '1:' . $table;
+  }
   $print_errors = (isset($options['print_errors'])) ? $options['print_errors'] : FALSE;
 
   if (!is_array($values)) {
@@ -772,7 +774,9 @@ function chado_insert_record($table, $values, $options = [], $chado_schema_name 
  * @ingroup tripal_chado_query_api
  */
 function chado_update_record($table, $match, $values, $options = NULL, $chado_schema_name = NULL) {
-
+  if(substr($table,0,2) != '1:') {
+    $table = '1:' . $table;
+  }
   $print_errors = (isset($options['print_errors'])) ? $options['print_errors'] : FALSE;
 
   if (!is_array($values)) {
@@ -1035,7 +1039,9 @@ function chado_update_record($table, $match, $values, $options = NULL, $chado_sc
  * @ingroup tripal_chado_query_api
  */
 function chado_delete_record($table, $match, $options = NULL, $chado_schema_name = NULL) {
-
+  if(substr($table,0,2) != '1:') {
+    $table = '1:' . $table;
+  }
   $print_errors = (isset($options['print_errors'])) ? $options['print_errors'] : FALSE;
 
   if (!is_array($match)) {
@@ -1276,6 +1282,9 @@ function chado_delete_record($table, $match, $options = NULL, $chado_schema_name
  * @ingroup tripal_chado_query_api
  */
 function chado_select_record($table, $columns, $values, $options = NULL, $chado_schema_name = NULL) {
+  if(substr($table,0,2) != '1:') {
+    $table = '1:' . $table;
+  }
   // Set defaults for options. If we don't set defaults then
   // we get memory leaks when we try to access the elements.
   if (!is_array($options)) {
@@ -2200,5 +2209,8 @@ function hook_chado_get_schema_name_alter($schema_name, $context) {
  * @see \ChadoPrefixExtender::select()
  */
 function chado_db_select($table, $alias = NULL, array $options = []) {
+  if(substr($table,0,2) != '1:') {
+    $table = '1:' . $table;
+  }
   return ChadoPrefixExtender::select($table, $alias, $options);
 }

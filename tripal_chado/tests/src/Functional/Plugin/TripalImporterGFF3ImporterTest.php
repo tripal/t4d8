@@ -33,6 +33,10 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
   public function testGFFImporterSimpleTest() {
 
     $chado = $this->chado;
+    $schema_name = $chado->getSchemaName();
+    print_r("\n\n\n");
+    print_r('Schema name:' . $schema_name);
+
     // $query = $chado->select('1:cv', 'cv')
     //   ->condition('cv.name', $cvname, '=')
     //   ->fields('cv', ['name', 'definition']);
@@ -47,8 +51,6 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
       ])
       ->execute();
 
-    
-    
     // Insert Analysis
     $analysis_id = $chado->insert('1:analysis')
       ->fields([
@@ -62,7 +64,7 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
     $importer_manager = \Drupal::service('tripal.importer');
     $gff3_importer = $importer_manager->createInstance('chado_gff3_loader');
     $run_args = [
-      'schema_name' => 'chado',
+      'schema_name' => $schema_name,
       'analysis_id' => $analysis_id,
       'organism_id' => $organism_id,
       'use_transaction' => 1,
@@ -90,11 +92,12 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
       'file_local' => '../..' . __DIR__ . '/../../../fixtures/gff3_loader/small_gene.gff',
     ];
     $gff3_importer->create($run_args, $file_details);  
-    $gff3_importer->run();
+    $gff3_importer->run([
+      'chado' => $chado,
+      'schema_name' => $schema_name
+    ]);
     $gff3_importer->postRun();
     
-    
-
     // $gff3_importer = new GFF3Importer();
     // $gff_file = __DIR__ . '/../data/small_gene.gff';
     // $fasta = ['file_local' => __DIR__ . '/../data/short_scaffold.fasta'];
