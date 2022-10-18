@@ -620,7 +620,7 @@ use Drupal\Core\Ajax\ReplaceCommand;
         // If the match_type is name and no regular expression was provided
         // then use the first word as the name, otherwise we don't set the name.
         elseif (strcmp($match_type, 'Name') == 0) {
-          echo 'defline:' . $defline . "\n";
+          // echo 'defline:' . $defline . "\n";
           if (preg_match("/^\s*(.*?)[\s\|].*$/", $defline, $matches)) {
             if (strlen($matches[1]) > $feature_tbl['fields']['name']['size']) {
               //   $this->logMessage("Regular expression retrieves a feature name too long for the feature name. Line !line.",
