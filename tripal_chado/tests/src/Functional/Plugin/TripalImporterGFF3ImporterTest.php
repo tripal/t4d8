@@ -31,11 +31,11 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
    * @group gff
    */
   public function testGFFImporterSimpleTest() {
-
+    $public = \Drupal::database();
     $chado = $this->chado;
     $schema_name = $chado->getSchemaName();
     print_r("\n\n\n");
-    print_r('Schema name:' . $schema_name);
+    print_r('Schema name:' . $schema_name . "\n");
 
     // $query = $chado->select('1:cv', 'cv')
     //   ->condition('cv.name', $cvname, '=')
@@ -60,7 +60,58 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
         'programversion' => '1.0',
       ])
       ->execute();
+
+
+    //tripal_chado_rebuild_chado_term_mappings();
+    $cti = new \Drupal\tripal_chado\Services\ChadoTermsInit;
+    $cti->installTerms();
+
+    // DEBUG
+    // Check what DBs are within this chado test schema
+    // $db_results = $chado->query('SELECT * FROM {1:db}');
+    // while($obj = $db_results->fetchObject()) {
+    //   print_r($obj);
+    // }
+
+    // DEBUG
+    // GFF3 fixtures file location
+    $debug_gff_file_loc = __DIR__ . '/../../../fixtures/gff3_loader/small_gene.gff';
+    print_r('Filesize: ' . filesize($debug_gff_file_loc) . "\n");
+    // throw new \Exception('DEBUG');
+
+    // Import the Sequence Ontology using the OBO loader
+    $obo_so_id = $public->insert('tripal_cv_obo')
+        ->fields([
+          'name' => 'Sequence Ontology',
+          'path' => 'http://purl.obolibrary.org/obo/so.obo'
+        ])
+        ->execute();
+    
+    $importer_manager = \Drupal::service('tripal.importer');
+    $obo_importer = $importer_manager->createInstance('chado_obo_loader');
+    $run_args = [
+      'schema_name' => $schema_name,
+      'obo_id' => $obo_so_id
+    ];
+    $obo_importer->create($run_args, []);  
+    $obo_importer->run([
+      'chado' => $chado,
+      'schema_name' => $schema_name
+    ]);
+
+    // Verify that gene is now in the cvterm table (which gets imported from SO obo)
+    $result_gene_cvterm = $chado->query("SELECT * FROM {1:cvterm} WHERE name = 'gene' LIMIT 1;");
+    $cvterm_object = null;
+    $cvterm_object = $result_gene_cvterm->fetchObject();
+    // $this->assertNotEquals($cvterm_object, null);
+    
+    // TODO
+    // We need to figure out a way to set chado_schema_main
+    // since seems to be needed by postRun
+    // $this->chado_schema_main = $schema_name;
+    // $obo_importer->postRun();
       
+    // Perform the GFF3 test by creating an instance of the GFF3 loader
     $importer_manager = \Drupal::service('tripal.importer');
     $gff3_importer = $importer_manager->createInstance('chado_gff3_loader');
     $run_args = [
@@ -88,9 +139,10 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
 
     // print_r(__DIR__);
     $file_details = [
-      // 'file_local' => 'modules/t4d8/tripal_chado/tests/fixtures/gff3_loader/small_gene.gff',
-      'file_local' => '../..' . __DIR__ . '/../../../fixtures/gff3_loader/small_gene.gff',
+      'file_local' => 'modules/t4d8/tripal_chado/tests/fixtures/gff3_loader/small_gene.gff',
+      //'file_local' => '../..' . __DIR__ . '/../../../fixtures/gff3_loader/small_gene.gff',
     ];
+    
     $gff3_importer->create($run_args, $file_details);  
     $gff3_importer->run([
       'chado' => $chado,

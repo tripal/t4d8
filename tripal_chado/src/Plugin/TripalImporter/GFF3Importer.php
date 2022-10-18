@@ -623,7 +623,7 @@ class GFF3Importer extends ChadoImporterBase {
     }
 
     // Get the analysis object.
-    $this->analysis = $chado->select('analysis','a')
+    $this->analysis = $chado->select('1:analysis','a')
     ->fields('a')
     ->condition('analysis_id', $this->analysis_id)
     ->execute()
