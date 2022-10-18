@@ -62,7 +62,8 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
       ->execute();
 
 
-    //tripal_chado_rebuild_chado_term_mappings();
+    // The OBO loader requires some chado terms
+    // This service initializes this data into the test schema database
     $cti = new \Drupal\tripal_chado\Services\ChadoTermsInit;
     $cti->installTerms();
 
