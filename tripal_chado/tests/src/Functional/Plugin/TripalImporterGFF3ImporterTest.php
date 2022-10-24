@@ -37,6 +37,21 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
     print_r("\n\n\n");
     print_r('Schema name:' . $schema_name . "\n");
 
+
+    // Perform a chado prepare
+    $preparer = \Drupal::service('tripal_chado.preparer');
+    $preparer->setParameters([
+      'output_schemas' => [$schema_name],
+    ]);
+    if (!$preparer->performTask()) {
+      // Display a message telling the user the task failed and details are in
+      // the site logs.
+    }    
+    
+    // $preparer->prepareChado(array(
+    //   'schema-name' => $schema_name
+    // ));
+
     // $query = $chado->select('1:cv', 'cv')
     //   ->condition('cv.name', $cvname, '=')
     //   ->fields('cv', ['name', 'definition']);
@@ -116,6 +131,11 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
     $importer_manager = \Drupal::service('tripal.importer');
     $gff3_importer = $importer_manager->createInstance('chado_gff3_loader');
     $run_args = [
+      'files' => [
+        0 => [
+          'file_path' => __DIR__ . '/../../../fixtures/gff3_loader/small_gene.gff'
+        ]
+      ],
       'schema_name' => $schema_name,
       'analysis_id' => $analysis_id,
       'organism_id' => $organism_id,
@@ -136,15 +156,18 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
       'alt_id_attr' => NULL,
       'skip_protein' => NULL,
     ];
-    // $run_args['files'][0]['file_path'] = __DIR__ . '../../../fixtures/gff3_loader/small_gene.gff';
 
-    // print_r(__DIR__);
+    
+
+    print_r('DIR: ' . __DIR__);
     $file_details = [
-      'file_local' => 'modules/t4d8/tripal_chado/tests/fixtures/gff3_loader/small_gene.gff',
+      // 'file_local' => 'modules/t4d8/tripal_chado/tests/fixtures/gff3_loader/small_gene.gff',
       //'file_local' => '../..' . __DIR__ . '/../../../fixtures/gff3_loader/small_gene.gff',
+      'file_local' => __DIR__ . '/../../../fixtures/gff3_loader/small_gene.gff',
     ];
     
-    $gff3_importer->create($run_args, $file_details);  
+    $gff3_importer->create($run_args, $file_details); 
+    $gff3_importer->prepareFiles();
     $gff3_importer->run([
       'chado' => $chado,
       'schema_name' => $schema_name

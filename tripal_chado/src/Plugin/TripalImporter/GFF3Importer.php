@@ -552,7 +552,7 @@ class GFF3Importer extends ChadoImporterBase {
 
     // Check to see if the file is located local to Drupal
     $dfile = $_SERVER['DOCUMENT_ROOT'] . base_path() . $this->gff_file;
-    if (!file_exists($dfile)) {
+    if (file_exists($dfile)) {
       $this->gff_file = $dfile;
     }
     // If the file is not local to Drupal check if it exists on the system.
@@ -812,6 +812,7 @@ class GFF3Importer extends ChadoImporterBase {
    */
   private function getTypeID($type, $is_prop_type) {
     $chado = $this->getChadoConnection();
+    
 
     $cv = $this->feature_cv;
     if ($is_prop_type) {
@@ -855,7 +856,7 @@ class GFF3Importer extends ChadoImporterBase {
         'is_relationship' => FALSE,
       ];
       // @todo convert api call
-      $cvterm = (object) chado_insert_cvterm($term, ['update_existing' => FALSE]);
+      $cvterm = (object) chado_insert_cvterm($term, ['update_existing' => FALSE], $this->chado_schema_main);
       $cvterm_match = $cvterm;
     }
 
@@ -876,7 +877,7 @@ class GFF3Importer extends ChadoImporterBase {
   private function prepSynonms() {
     // make sure we have a 'synonym_type' vocabulary
     $select = ['name' => 'synonym_type'];
-    $results = chado_select_record('cv', ['*'], $select);
+    $results = chado_select_record('cv', ['*'], $select, NULL, $this->chado_schema_main);
 
     if (count($results) == 0) {
       // insert the 'synonym_type' vocabulary
@@ -892,7 +893,7 @@ class GFF3Importer extends ChadoImporterBase {
         return 0;
       }
       // now that we've added the cv we need to get the record
-      $results = chado_select_record('cv', ['*'], $select);
+      $results = chado_select_record('cv', ['*'], $select, NULL, $this->chado_schema_main);
       if (count($results) > 0) {
         $syncv = $results[0];
       }
@@ -908,7 +909,7 @@ class GFF3Importer extends ChadoImporterBase {
         'name' => 'synonym_type',
       ],
     ];
-    $result = chado_select_record('cvterm', ['*'], $select);
+    $result = chado_select_record('cvterm', ['*'], $select, NULL, $this->chado_schema_main);
     if (count($result) == 0) {
       $term = [
         'name' => 'exact',
@@ -918,7 +919,7 @@ class GFF3Importer extends ChadoImporterBase {
         'cv_name' => $syncv->name,
         'is_relationship' => FALSE,
       ];
-      $syntype = chado_insert_cvterm($term, ['update_existing' => TRUE]);
+      $syntype = chado_insert_cvterm($term, ['update_existing' => TRUE], $this->chado_schema_main);
       if (!$syntype) {
         $this->logger->warning("Cannot add synonym type: synonym_type:exact");
         return 0;
@@ -938,7 +939,7 @@ class GFF3Importer extends ChadoImporterBase {
     // Check to see if we have a NULL publication in the pub table.  If not,
     // then add one.
     $select = ['uniquename' => 'null'];
-    $result = chado_select_record('pub', ['*'], $select);
+    $result = chado_select_record('pub', ['*'], $select, NULL, $this->chado_schema_main);
     if (count($result) == 0) {
       $pub_sql = "
         INSERT INTO {pub} (uniquename,type_id)
@@ -964,7 +965,7 @@ class GFF3Importer extends ChadoImporterBase {
         $this->logger->warning("Cannot add null publication needed for setup of alias.");
         return 0;
       }
-      $result = chado_select_record('pub', ['*'], $select);
+      $result = chado_select_record('pub', ['*'], $select, NULL, $this->chado_schema_main);
       $pub = $result[0];
     }
     else {
@@ -986,10 +987,10 @@ class GFF3Importer extends ChadoImporterBase {
       // can't be found then look for the name as is.  If it still can't be found
       // the create the database
       $values = ['name' => "DB:$dbname"];
-      $db = chado_select_record('db', ['db_id'], $values);
+      $db = chado_select_record('db', ['db_id'], $values, NULL, $this->chado_schema_main);
       if (count($db) == 0) {
         $values = ['name' => "$dbname"];
-        $db = chado_select_record('db', ['db_id'], $values);
+        $db = chado_select_record('db', ['db_id'], $values, NULL, $this->chado_schema_main);
       }
       if (count($db) == 0) {
         $values = [
@@ -998,10 +999,10 @@ class GFF3Importer extends ChadoImporterBase {
         ];
         $success = chado_insert_record('db', $values, array(
           'skip_validation' => TRUE,
-        ));
+        ), $this->chado_schema_main);
         if ($success) {
           $values = ['name' => "$dbname"];
-          $db = chado_select_record('db', ['db_id'], $values);
+          $db = chado_select_record('db', ['db_id'], $values, NULL, $this->chado_schema_main);
         }
         else {
           $this->logger->warning("Cannot find or add the database $dbname.");
@@ -1421,7 +1422,7 @@ class GFF3Importer extends ChadoImporterBase {
         'seqlen' => strlen($residues),
         'md5checksum' => md5($residues),
       ];
-      chado_update_record('feature', ['feature_id' => $feature_id], $values);
+      chado_update_record('feature', ['feature_id' => $feature_id], $values, NULL, $this->chado_schema_main);
       $count++;
       $this->setItemsHandled($count);
     }

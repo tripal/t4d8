@@ -1285,6 +1285,7 @@ function chado_select_record($table, $columns, $values, $options = NULL, $chado_
   if(substr($table,0,2) != '1:') {
     $table = '1:' . $table;
   }
+
   // Set defaults for options. If we don't set defaults then
   // we get memory leaks when we try to access the elements.
   if (!is_array($options)) {
@@ -1658,6 +1659,8 @@ function chado_select_record($table, $columns, $values, $options = NULL, $chado_
   else {
     $resource = chado_query($sql, $args, [], $chado_schema_name);
   }
+  print_r('SQL:' . $sql);
+  print_r($args);
 
   // Format results into an array.
   $results = [];

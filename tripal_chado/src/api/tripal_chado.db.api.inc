@@ -99,6 +99,10 @@ function chado_get_db($identifiers, $options = [], $schema_name = 'chado') {
   }
 
   // Try to get the db.
+  print_r("chado_generate_var arguments:");
+  print_r($identifiers);
+  print_r($options);
+  print_r('Schema name:' . $schema_name);
   $db = chado_generate_var(
     'db',
     $identifiers,

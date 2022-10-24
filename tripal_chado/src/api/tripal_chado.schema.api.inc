@@ -508,6 +508,12 @@ function chado_get_table_names($include_custom = NULL, $chado_schema = NULL) {
  * @ingroup tripal_chado_schema_api
  */
 function chado_get_schema($table, $chado_schema = NULL) {
+  // This code was added in case a $table is of the form int:table_name
+  // which the sub functions in this function are incompatible with
+  $table_colon_parts = explode(':', $table);
+  if(count($table_colon_parts) > 1) {
+    $table = $table_colon_parts[1];
+  }
   // Retrieve the default name of the chado schema if it's not provided.
   if ($chado_schema === NULL) {
     $chado_schema = chado_get_schema_name('chado');

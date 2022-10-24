@@ -451,6 +451,8 @@ function chado_insert_cv($name, $definition, $options = [], $schema_name = 'chad
  * @ingroup tripal_chado_cv_api
  */
 function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
+  $chado = \Drupal::service('tripal_chado.database');
+  $chado->setSchemaName($schema_name);
   // Get the term properties.
   $id = (isset($term['id'])) ? $term['id'] : '';
   $name = '';
@@ -532,7 +534,8 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
   //$cv = chado_get_cv(['name' => $cvname], [], $schema_name); // BEFOREOPT: 5.9ms
   // OPT: 5.3ms
   $sql_cv = "SELECT cv_id FROM {1:cv} WHERE name = :name LIMIT 1";
-  $results_cv = chado_query($sql_cv, [':name' => $cvname], [], $schema_name);
+  // $results_cv = chado_query($sql_cv, [':name' => $cvname], [], $schema_name);
+  $results_cv = $chado->query($sql_cv, [':name' => $cvname], [], $schema_name);
   $cv = null;
   foreach ($results_cv as $row_cv) {
     $cv = new stdClass();
