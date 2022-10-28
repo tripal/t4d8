@@ -99,6 +99,9 @@ class ChadoCustomTable {
     $results = $query->execute();
     if ($results) {
       $custom_table = $results->fetchObject();
+      if (!$custom_table) {
+        throw new \Exception('Could not find custom table:' . $this->table_name);
+      }
       $this->table_id = $custom_table->table_id;
     }
   }
