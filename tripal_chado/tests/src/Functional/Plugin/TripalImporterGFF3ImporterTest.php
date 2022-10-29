@@ -34,8 +34,8 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
     $public = \Drupal::database();
     $chado = $this->chado;
     $schema_name = $chado->getSchemaName();
-    print_r("\n\n\n");
-    print_r('Schema name:' . $schema_name . "\n");
+    // print_r("\n\n\n");
+    // print_r('Schema name:' . $schema_name . "\n");
 
 
     // Perform a chado prepare
