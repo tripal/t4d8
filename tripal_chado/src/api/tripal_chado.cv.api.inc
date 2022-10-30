@@ -453,7 +453,8 @@ function chado_insert_cv($name, $definition, $options = [], $schema_name = 'chad
 function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
   $chado = \Drupal::service('tripal_chado.database');
   $chado->setSchemaName($schema_name);
-  $chado->useTripalDbxSchemaFor(get_class());
+  // $chado->useTripalDbxSchemaFor(get_class()); // this doesn't work, another error
+  
   // Get the term properties.
   $id = (isset($term['id'])) ? $term['id'] : '';
   $name = '';
