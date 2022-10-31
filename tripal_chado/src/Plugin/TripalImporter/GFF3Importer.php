@@ -3172,4 +3172,99 @@ class GFF3Importer extends ChadoImporterBase {
   public function formSubmit($form, &$form_state) {
 
   }
+
+  function insert_cvterm($term, $options = []) {
+    // Get a chado connection
+    $chado = $this->getChadoConnection();
+
+    $cvterm_fields = [];
+    $cvterm_fields['name'] = $term->name;
+    
+    if (!($term->is_obsolete)) {
+      $cvterm_fields['is_obsolete'] = 0;
+    }
+    else {
+      $cvterm_fields['is_obsolete'] = $term->is_obsolete;
+    }
+
+    if (!($term->is_relationship)) {
+      $cvterm_fields['is_relationshiptype'] = 0;
+    }
+    else {
+      if ($term->is_relationship == FALSE) {
+        $cvterm_fields['is_relationshiptype'] = 0;
+      }
+      else {
+        $cvterm_fields['is_relationshiptype'] = 1;
+      }
+    }  
+
+    // Get the cv_id needed for inserting a cvterm
+    $cv_results = $chado->select('cv')
+      ->fields('cv',['cv_id'])
+      ->condition('name', $term->cv_name)
+      ->execute();
+    if (!$cv_results) {
+      $cv_id = $chado->insert('1:cv', 'cv')
+        ->fields([
+          'cv_name' => $term->cv_name
+        ])
+        ->execute();
+    }
+    else {
+      $cv_id = $cv_results->fetchObject()->cv_id;
+    }
+
+    $cvterm_fields['cv_id'] = $cv_id;
+
+    // Get the db_id which may be used to create a record in dbxref
+    $db_results = $chado->select('db')
+    ->fields('db',['db_id'])
+    ->condition('name', $term->db_name)
+    ->execute();
+    if (!$db_results) {
+      $db_id = $chado->insert('1:db', 'db')
+      ->fields([
+        'db_name' => $term->db_name
+      ])
+      ->execute();
+    }
+    else {
+      $db_id = $db_results->fetchObject()->db_id;
+    }
+
+    // Search to see if a dbxref id exists (db:term)
+    $dbxref_results = $chado->select('dbxref')
+    ->fields('dbzref',['dbxref_id'])
+    ->condition('db_id', $db_id)
+    ->condition('name', $term->db_name . ':' . $term->name)
+    ->execute();
+    if (!$dbxref_results) {
+      $dbxref_id = $chado->insert('1:dbxref')
+        ->fields([
+          'db_id' => $db_id,
+          'accession' => $term->db_name . ':' . $term->name
+        ])
+        ->execute();
+    }
+    else {
+      $dbxref_id = $dbxref_results->fetchObject()->dbxref_id;
+    }
+
+    // Perform cvterm insert
+    $cvterm_fields['dbxref_id'] = $dbxref_id;
+    $cvterm_id = $chado->insert('cvterm')
+      ->fields($cvterm_fields)
+      ->execute();
+    
+    // We need to get the cvterm object
+    $cvterm_object = $chado->select('1:cvterm', 'cvterm')
+      ->fields('cvterm', ['cvterm_id'])
+      ->condition('cvterm.cvterm_id', $cvterm_id)
+      ->execute()->fetchObhect()->cvterm_id;
+
+    return $cvterm_object;
+      
+
+  }
 }
