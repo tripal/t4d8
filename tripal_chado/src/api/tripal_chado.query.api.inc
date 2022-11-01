@@ -454,8 +454,8 @@ function chado_set_active($dbname = 'default', $chado_schema_name = NULL) {
  * @ingroup tripal_chado_query_api
  */
 function chado_insert_record($table, $values, $options = [], $chado_schema_name = 'chado') {
-  $chado = \Drupal::service('tripal_chado.database');
-  $chado->setSchemaName($chado_schema_name);
+  // $chado = \Drupal::service('tripal_chado.database');
+  // $chado->setSchemaName($chado_schema_name);
   if(substr($table,0,2) != '1:') {
     $table = '1:' . $table;
   }
@@ -666,14 +666,14 @@ function chado_insert_record($table, $values, $options = [], $chado_schema_name 
 
   // Create the SQL.
   $sql = 'INSERT INTO {' . $table . '} (' . implode(", ", $ifields) . ") VALUES (" . implode(", ", $itypes) . ")";
-  $result = $chado->query($sql, $ivalues, [], $chado_schema_name);
+  $result = chado_query($sql, $ivalues, [], $chado_schema_name);
 
   // If we have a result then add primary keys to return array.
   if ($options['return_record'] == TRUE and $result) {
     if (array_key_exists('primary key', $table_desc) and is_array($table_desc['primary key'])) {
       foreach ($table_desc['primary key'] as $field) {
         $sql = "SELECT CURRVAL('{" . $table . "}_" . $field . "_seq')";
-        $results = $chado->query($sql, [], [], $chado_schema_name);
+        $results = chado_query($sql, [], [], $chado_schema_name);
         $value = $results->fetchField();
         if (!$value) {
           tripal_report_error('tripal_chado', TRIPAL_ERROR,
