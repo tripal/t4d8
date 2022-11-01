@@ -537,6 +537,7 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
   // OPT: 5.3ms
   $sql_cv = "SELECT cv_id FROM {1:cv} WHERE name = :name LIMIT 1";
   $results_cv = chado_query($sql_cv, [':name' => $cvname], [], $schema_name);
+  print_r('cvname:' . $cvname . "\n");
   // $results_cv = $chado->query($sql_cv, [':name' => $cvname]);
   $cv = null;
   foreach ($results_cv as $row_cv) {
