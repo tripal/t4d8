@@ -39,14 +39,14 @@ class TripalImporterGFF3ImporterTest extends ChadoTestBrowserBase {
 
 
     // Perform a chado prepare
-    $preparer = \Drupal::service('tripal_chado.preparer');
-    $preparer->setParameters([
-      'output_schemas' => [$schema_name],
-    ]);
-    if (!$preparer->performTask()) {
-      // Display a message telling the user the task failed and details are in
-      // the site logs.
-    }    
+    // $preparer = \Drupal::service('tripal_chado.preparer');
+    // $preparer->setParameters([
+    //   'output_schemas' => [$schema_name],
+    // ]);
+    // if (!$preparer->performTask()) {
+    //   // Display a message telling the user the task failed and details are in
+    //   // the site logs.
+    // }    
     
     // $preparer->prepareChado(array(
     //   'schema-name' => $schema_name
