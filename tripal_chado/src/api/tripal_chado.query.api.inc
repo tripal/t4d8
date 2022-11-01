@@ -673,11 +673,7 @@ function chado_insert_record($table, $values, $options = [], $chado_schema_name 
   if ($options['return_record'] == TRUE and $result) {
     if (array_key_exists('primary key', $table_desc) and is_array($table_desc['primary key'])) {
       foreach ($table_desc['primary key'] as $field) {
-        $original_table = $table;
-        if(substr($table,0,2) == "1:") {
-          $original_table = substr($table,2,strlen($table));
-        }
-        $sql = "SELECT CURRVAL('{" . $original_table . "}_" . $field . "_seq')";
+        $sql = "SELECT CURRVAL('{" . $table . "}_" . $field . "_seq')";
         print_r('SQL:' . $sql . "\n");
         // $results = chado_query($sql, [], [], $chado_schema_name);
         $results = $chado->query($sql, [], []);
