@@ -1282,6 +1282,8 @@ function chado_delete_record($table, $match, $options = NULL, $chado_schema_name
  * @ingroup tripal_chado_query_api
  */
 function chado_select_record($table, $columns, $values, $options = NULL, $chado_schema_name = NULL) {
+  $chado = \Drupal::service('tripal_chado.database');
+  $chado->setSchemaName($chado_schema_name);  
   if(substr($table,0,2) != '1:') {
     $table = '1:' . $table;
   }
@@ -1657,7 +1659,8 @@ function chado_select_record($table, $columns, $values, $options = NULL, $chado_
     $resource = chado_pager_query($sql, $args, $pager['limit'], $pager['element'], NULL, $total_records, $chado_schema_name);
   }
   else {
-    $resource = chado_query($sql, $args, [], $chado_schema_name);
+    // $resource = chado_query($sql, $args, [], $chado_schema_name);
+    $resource = $chado->query($sql, $args, []);
   }
   print_r('SQL:' . $sql);
   print_r($args);
@@ -1972,7 +1975,9 @@ function hook_chado_query_alter(&$sql, &$args, $chado_schema_name = NULL) {
  *
  * @ingroup tripal_chado_query_api
  */
-function chado_pager_query($query, $args, $limit, $element, $count_query = '', $chado_schema_name = NULL) {
+function chado_pager_query($query, $args, $limit, $element, $count_query = '', $chado_schema_name = 'chado') {
+  $chado = \Drupal::service('tripal_chado.database');
+  $chado->setSchemaName($chado_schema_name); 
   // Get the page and offset for the pager.
   $page_arg = isset($_GET['page']) ? $_GET['page'] : '0';
   $pages = explode(',', $page_arg);
@@ -1990,7 +1995,8 @@ function chado_pager_query($query, $args, $limit, $element, $count_query = '', $
   }
 
   // We calculate the total of pages as ceil(items / limit).
-  $results = chado_query($count_query, $args);
+  // $results = chado_query($count_query, $args);
+  $results = $chado->query($count_query, $args);
   if (!$results) {
     tripal_report_error('tripal_chado', TRIPAL_ERROR,
       "chado_pager_query(): Query failed: %cq", ['%cq' => $count_query]);
