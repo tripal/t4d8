@@ -453,7 +453,9 @@ function chado_set_active($dbname = 'default', $chado_schema_name = NULL) {
  *
  * @ingroup tripal_chado_query_api
  */
-function chado_insert_record($table, $values, $options = [], $chado_schema_name = NULL) {
+function chado_insert_record($table, $values, $options = [], $chado_schema_name = 'chado') {
+  $chado = \Drupal::service('tripal_chado.database');
+  $chado->setSchemaName($chado_schema_name);
   if(substr($table,0,2) != '1:') {
     $table = '1:' . $table;
   }
@@ -664,14 +666,14 @@ function chado_insert_record($table, $values, $options = [], $chado_schema_name 
 
   // Create the SQL.
   $sql = 'INSERT INTO {' . $table . '} (' . implode(", ", $ifields) . ") VALUES (" . implode(", ", $itypes) . ")";
-  $result = chado_query($sql, $ivalues, [], $chado_schema_name);
+  $result = $chado->query($sql, $ivalues, [], $chado_schema_name);
 
   // If we have a result then add primary keys to return array.
   if ($options['return_record'] == TRUE and $result) {
     if (array_key_exists('primary key', $table_desc) and is_array($table_desc['primary key'])) {
       foreach ($table_desc['primary key'] as $field) {
         $sql = "SELECT CURRVAL('{" . $table . "}_" . $field . "_seq')";
-        $results = chado_query($sql, [], [], $chado_schema_name);
+        $results = $chado->query($sql, [], [], $chado_schema_name);
         $value = $results->fetchField();
         if (!$value) {
           tripal_report_error('tripal_chado', TRIPAL_ERROR,
@@ -773,7 +775,9 @@ function chado_insert_record($table, $values, $options = [], $chado_schema_name 
  *
  * @ingroup tripal_chado_query_api
  */
-function chado_update_record($table, $match, $values, $options = NULL, $chado_schema_name = NULL) {
+function chado_update_record($table, $match, $values, $options = NULL, $chado_schema_name = 'chado') {
+  $chado = \Drupal::service('tripal_chado.database');
+  $chado->setSchemaName($chado_schema_name);
   if(substr($table,0,2) != '1:') {
     $table = '1:' . $table;
   }
@@ -943,7 +947,7 @@ function chado_update_record($table, $match, $values, $options = NULL, $chado_sc
   }
   $sql = mb_substr($sql, 0, -4);  // Get rid of the trailing 'AND'.
 
-  $result = chado_query($sql, $args, [], $chado_schema_name);
+  $result = $chado->query($sql, $args, [], $chado_schema_name);
 
   // If we have a result then add primary keys to return array.
   if ($options['return_record'] == TRUE and $result) {
@@ -1038,7 +1042,9 @@ function chado_update_record($table, $match, $values, $options = NULL, $chado_sc
  *
  * @ingroup tripal_chado_query_api
  */
-function chado_delete_record($table, $match, $options = NULL, $chado_schema_name = NULL) {
+function chado_delete_record($table, $match, $options = NULL, $chado_schema_name = 'chado') {
+  $chado = \Drupal::service('tripal_chado.database');
+  $chado->setSchemaName($chado_schema_name);
   if(substr($table,0,2) != '1:') {
     $table = '1:' . $table;
   }
@@ -1133,7 +1139,7 @@ function chado_delete_record($table, $match, $options = NULL, $chado_schema_name
   $sql = mb_substr($sql, 0, -4);  // Get rid of the trailing 'AND'.
 
   // Finally perform the delete.  If successful, return the updated record.
-  $result = chado_query($sql, $args, [], 'testchado');
+  $result = $chado->query($sql, $args, [], 'testchado');
   if ($result) {
     return TRUE;
   }
@@ -1281,7 +1287,7 @@ function chado_delete_record($table, $match, $options = NULL, $chado_schema_name
  *
  * @ingroup tripal_chado_query_api
  */
-function chado_select_record($table, $columns, $values, $options = NULL, $chado_schema_name = NULL) {
+function chado_select_record($table, $columns, $values, $options = NULL, $chado_schema_name = 'chado') {
   $chado = \Drupal::service('tripal_chado.database');
   $chado->setSchemaName($chado_schema_name);  
   if(substr($table,0,2) != '1:') {
@@ -1764,7 +1770,7 @@ function chado_select_record_check_value_type(&$op, &$value, $type) {
  *
  * @ingroup tripal_chado_query_api
  */
-function chado_query($sql, $args = [], $options = [], $chado_schema_name = NULL) {
+function chado_query($sql, $args = [], $options = [], $chado_schema_name = 'chado') {
   $results = NULL;
 
   // Check if Chado is within the same database as Drupal (i.e. local).
