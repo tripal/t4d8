@@ -451,8 +451,8 @@ function chado_insert_cv($name, $definition, $options = [], $schema_name = 'chad
  * @ingroup tripal_chado_cv_api
  */
 function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
-  $chado = \Drupal::service('tripal_chado.database');
-  $chado->setSchemaName($schema_name);
+  // $chado = \Drupal::service('tripal_chado.database');
+  // $chado->setSchemaName($schema_name);
   // $chado->useTripalDbxSchemaFor(get_class()); // this doesn't work, another error
   
   // Get the term properties.
@@ -536,8 +536,8 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
   //$cv = chado_get_cv(['name' => $cvname], [], $schema_name); // BEFOREOPT: 5.9ms
   // OPT: 5.3ms
   $sql_cv = "SELECT cv_id FROM {1:cv} WHERE name = :name LIMIT 1";
-  // $results_cv = chado_query($sql_cv, [':name' => $cvname], [], $schema_name);
-  $results_cv = $chado->query($sql_cv, [':name' => $cvname]);
+  $results_cv = chado_query($sql_cv, [':name' => $cvname], [], $schema_name);
+  // $results_cv = $chado->query($sql_cv, [':name' => $cvname]);
   $cv = null;
   foreach ($results_cv as $row_cv) {
     $cv = new stdClass();
@@ -669,7 +669,7 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
         }
       }
       // Get the original cvterm with the same name and return that.
-      $result = $chado->query($cvtermsql, [
+      $result = chado_query($cvtermsql, [
         ':accession' => $dbxref->accession,
         ':name' => $dbname,
       ], [], $schema_name);
@@ -680,7 +680,7 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
     // We can now perform and updated if we need to.
   }
   // Get the CVterm record.
-  $result = $chado->query($cvtermsql, [
+  $result = chado_query($cvtermsql, [
     ':accession' => $accession,
     ':name' => $dbname,
   ], [], $schema_name);
@@ -726,7 +726,7 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
       tripal_report_error('tripal_cv', TRIPAL_WARNING, "The dbxref already exists for another cvterm record: $name (cv: " . $cvname . " db: $dbname)", []);
       return 0;
     }
-    $result = $chado->query($cvtermsql, [
+    $result = chado_query($cvtermsql, [
       ':accession' => $accession,
       ':name' => $dbname,
     ], [], $schema_name);
@@ -757,7 +757,7 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
         INNER JOIN {cv} CV on CV.cv_id = CVT.cv_id
       WHERE DBX.accession = :accession and DB.name = :dbname and CVT.name = :term and CV.name = :cvname
     ";
-    $check = $chado->query($checksql, [
+    $check = chado_query($checksql, [
       ':accession' => $accession,
       ':dbname' => $dbname,
       ':term' => $name,
@@ -785,7 +785,7 @@ function chado_insert_cvterm($term, $options = [], $schema_name = 'chado') {
       }
     }
     // Finally grab the updated details.
-    $result = $chado->query($cvtermsql, [
+    $result = chado_query($cvtermsql, [
       ':accession' => $accession,
       ':name' => $dbname,
     ], [], $schema_name);
