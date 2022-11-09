@@ -1166,6 +1166,10 @@ class ChadoPreparer extends ChadoTaskBase {
         continue;
       }
 
+      if ($column == "residues" && $chado_table == "feature") {
+        continue;
+      }
+
       $term_id = $mapping->getColumnTermId($chado_table, $column);
       list($idSpace_name, $accession) = explode(':', $term_id);
       $idSpace = $idSpace_manager->loadCollection($idSpace_name);
