@@ -242,19 +242,31 @@ class ChadoSchema {
 
     $schema = $this->getSchemaDetails();
 
+    $table_arr =  FALSE;
     if (isset($schema[$table])) {
       $table_arr = $schema[$table];
     }
     else {
-      $table_arr =  FALSE;
+      // Try to check if it's a custom table
+      $table_arr = $this->getCustomTableSchema($table);
+      if($table_arr == FALSE) {
+        return NULL;
+      }
     }
 
     // Ensure all the parts are set.
-    if (!isset($table_arr['primary key'])) { $table_arr['primary key'] = []; }
-    if (!isset($table_arr['unique keys'])) { $table_arr['unique keys'] = []; }
-    if (!isset($table_arr['foreign keys'])) { $table_arr['foreign keys'] = []; }
-    if (!isset($table_arr['referring_tables'])) { $table_arr['referring_tables'] = []; }
-
+    if (!isset($table_arr['primary key'])) {
+      $table_arr['primary key'] = [];
+    }
+    if (!isset($table_arr['unique keys'])) {
+      $table_arr['unique keys'] = [];
+    }
+    if (!isset($table_arr['foreign keys'])) {
+      $table_arr['foreign keys'] = [];
+    }
+    if (!isset($table_arr['referring_tables'])) {
+      $table_arr['referring_tables'] = [];
+    }
 
     // Ensures consistency regardless of the number of columns of the pkey.
     $table_arr['primary key'] = (array) $table_arr['primary key'];
@@ -274,12 +286,6 @@ class ChadoSchema {
     // Ensure foreign key array is present for consistency.
     if (!isset($table_arr['foreign keys'])) {
       $table_arr['foreign keys'] = [];
-    }
-
-    // if the table_arr is empty then maybe this is a custom table
-    if (!is_array($table_arr) or count($table_arr) == 0) {
-      //$table_arr = $this->getCustomTableSchema($table);
-      return FALSE;
     }
 
     return $table_arr;
@@ -465,6 +471,16 @@ class ChadoSchema {
     $default_db = $this->default_db;
     $chado_schema = $this->schema_name;
 
+    // Ensure they gave us a table.
+    if (empty($table)) {
+      tripal_report_error(
+        'ChadoSchema',
+        TRIPAL_WARNING,
+        'You must pass in a table name when calling checkTableExists().'
+      );
+      return NULL;
+    }
+
     // If we've already lookup up this table then don't do it again, as
     // we don't need to keep querying the database for the same tables.
     if (array_key_exists("chado_tables", $GLOBALS) and
@@ -520,6 +536,25 @@ class ChadoSchema {
     // Get the default database and chado schema.
     $default_db = $this->default_db;
     $chado_schema = $this->schema_name;
+
+    // Ensure they gave us a table.
+    if (empty($table)) {
+      tripal_report_error(
+        'ChadoSchema',
+        TRIPAL_WARNING,
+        'You must pass in a table name when calling checkColumnExists().'
+      );
+      return NULL;
+    }
+    // Ensure they gave us a column.
+    if (empty($column)) {
+      tripal_report_error(
+        'ChadoSchema',
+        TRIPAL_WARNING,
+        'You must pass in a column name when calling checkColumnExists().'
+      );
+      return NULL;
+    }
 
     // @upgrade $cached_obj = cache_get('chado_table_columns', 'cache');
     // if ($cached_obj) {
@@ -680,13 +715,37 @@ class ChadoSchema {
    */
   public function checkSequenceExists($table, $column, $sequence_name = NULL) {
 
-    $prefixed_table = $this->schema_name . '.' . $table;
     if ($sequence_name === NULL) {
+
+      // Ensure they gave us a table.
+      if (empty($table)) {
+        tripal_report_error(
+          'ChadoSchema',
+          TRIPAL_WARNING,
+          'You must pass in a table name when calling checkSequenceExists().'
+        );
+        return NULL;
+      }
+      // Ensure they gave us a table.
+      if (empty($column)) {
+        tripal_report_error(
+          'ChadoSchema',
+          TRIPAL_WARNING,
+          'You must pass in a column name when calling checkSequenceExists().'
+        );
+        return NULL;
+      }
+
+      $prefixed_table = $this->schema_name . '.' . $table;
       $sequence_name = $this->connection->query('SELECT pg_get_serial_sequence(:table, :column);',
         [':table' => $prefixed_table, ':column' => $column])->fetchField();
-
       // Remove prefixed table from sequence name
-      $sequence_name = str_replace($this->schema_name . '.', '', $sequence_name);
+      if (!empty($sequence_name)) {
+        $sequence_name = str_replace($this->schema_name . '.', '', $sequence_name);
+      }
+      else {
+        return FALSE;
+      }
     }
 
     // Get the default database and chado schema.
@@ -849,6 +908,23 @@ class ChadoSchema {
    */
   function checkIndexExists($table, $name, $no_suffix = FALSE) {
 
+    if (empty($table)) {
+      tripal_report_error(
+        'ChadoSchema',
+        TRIPAL_NOTICE,
+        'You must provide the table name when calling checkIndexExists().'
+      );
+      return NULL;
+    }
+    if (empty($name)) {
+      tripal_report_error(
+        'ChadoSchema',
+        TRIPAL_NOTICE,
+        'You must provide the name of the index when calling checkIndexExists().'
+      );
+      return NULL;
+    }
+
     if ($no_suffix) {
       $indexname = strtolower($table . '_' . $name);
     }
@@ -925,4 +1001,172 @@ class ChadoSchema {
      // Now execute it!
      return $this->connection->query($query);
    }
+
+
+   function createTableSql($name, $table) {
+    $sql_fields = [];
+    foreach ($table['fields'] as $field_name => $field) {
+      $sql_fields[] = $this
+        ->createFieldSql($field_name, $this
+        ->processField($field));
+    }
+    $sql_keys = [];
+    if (!empty($table['primary key']) && is_array($table['primary key'])) {
+      $this
+        ->ensureNotNullPrimaryKey($table['primary key'], $table['fields']);
+      $sql_keys[] = 'CONSTRAINT ' . $this
+        ->ensureIdentifiersLength($name, '', 'pkey') . ' PRIMARY KEY (' . $this
+        ->createPrimaryKeySql($table['primary key']) . ')';
+    }
+    if (isset($table['unique keys']) && is_array($table['unique keys'])) {
+      foreach ($table['unique keys'] as $key_name => $key) {
+        $sql_keys[] = 'CONSTRAINT ' . $this
+          ->ensureIdentifiersLength($name, $key_name, 'key') . ' UNIQUE (' . implode(', ', $key) . ')';
+      }
+    }
+    $sql = "CREATE TABLE {" . $name . "} (\n\t";
+    $sql .= implode(",\n\t", $sql_fields);
+    if (count($sql_keys) > 0) {
+      $sql .= ",\n\t";
+    }
+    $sql .= implode(",\n\t", $sql_keys);
+    $sql .= "\n)";
+    $statements[] = $sql;
+    if (isset($table['indexes']) && is_array($table['indexes'])) {
+      foreach ($table['indexes'] as $key_name => $key) {
+        $statements[] = $this
+          ->_createIndexSql($name, $key_name, $key);
+      }
+    }
+
+    // Add table comment.
+    if (!empty($table['description'])) {
+      $statements[] = 'COMMENT ON TABLE {' . $name . '} IS ' . $this
+        ->prepareComment($table['description']);
+    }
+
+    // Add column comments.
+    foreach ($table['fields'] as $field_name => $field) {
+      if (!empty($field['description'])) {
+        $statements[] = 'COMMENT ON COLUMN {' . $name . '}.' . $field_name . ' IS ' . $this
+          ->prepareComment($field['description']);
+      }
+    }
+    return $statements;
+  }
+
+  function createFieldSql($name, $spec) {
+
+    // The PostgreSQL server converts names into lowercase, unless quoted.
+    $sql = '"' . $name . '" ' . $spec['pgsql_type'];
+    if (isset($spec['type']) && $spec['type'] == 'serial') {
+      unset($spec['not null']);
+    }
+    if (in_array($spec['pgsql_type'], [
+      'varchar',
+      'character',
+    ]) && isset($spec['length'])) {
+      $sql .= '(' . $spec['length'] . ')';
+    }
+    elseif (isset($spec['precision']) && isset($spec['scale'])) {
+      $sql .= '(' . $spec['precision'] . ', ' . $spec['scale'] . ')';
+    }
+    if (!empty($spec['unsigned'])) {
+      $sql .= " CHECK ({$name} >= 0)";
+    }
+    if (isset($spec['not null'])) {
+      if ($spec['not null']) {
+        $sql .= ' NOT NULL';
+      }
+      else {
+        $sql .= ' NULL';
+      }
+    }
+    if (array_key_exists('default', $spec)) {
+      $default = $this
+        ->escapeDefaultValue($spec['default']);
+      $sql .= " default {$default}";
+    }
+    return $sql;
+  }
+
+
+  function processField($field) {
+    if (!isset($field['size'])) {
+      $field['size'] = 'normal';
+    }
+
+    // Set the correct database-engine specific datatype.
+    // In case one is already provided, force it to lowercase.
+    if (isset($field['pgsql_type']) AND ($field['pgsql_type'] !== NULL)) {
+      $field['pgsql_type'] = mb_strtolower($field['pgsql_type']);
+    }
+    else {
+      $map = $this
+        ->getFieldTypeMap();
+      $field['pgsql_type'] = $map[$field['type'] . ':' . $field['size']];
+    }
+    if (!empty($field['unsigned'])) {
+
+      // Unsigned data types are not supported in PostgreSQL 9.1. In MySQL,
+      // they are used to ensure a positive number is inserted and it also
+      // doubles the maximum integer size that can be stored in a field.
+      // The PostgreSQL schema in Drupal creates a check constraint
+      // to ensure that a value inserted is >= 0. To provide the extra
+      // integer capacity, here, we bump up the column field size.
+      if (!isset($map)) {
+        $map = $this
+          ->getFieldTypeMap();
+      }
+      switch ($field['pgsql_type']) {
+        case 'smallint':
+          $field['pgsql_type'] = $map['int:medium'];
+          break;
+        case 'int':
+          $field['pgsql_type'] = $map['int:big'];
+          break;
+      }
+    }
+    if (isset($field['type']) && $field['type'] == 'serial') {
+      unset($field['not null']);
+    }
+    return $field;
+  }
+
+
+  function ensureNotNullPrimaryKey(array $primary_key, array $fields) {
+    foreach (array_intersect($primary_key, array_keys($fields)) as $field_name) {
+      if (!isset($fields[$field_name]['not null']) || $fields[$field_name]['not null'] !== TRUE) {
+        throw new SchemaException("The '{$field_name}' field specification does not define 'not null' as TRUE.");
+      }
+    }
+  }
+
+
+  function ensureIdentifiersLength($table_identifier_part, $column_identifier_part, $tag, $separator = '__') {
+    $info = $this
+      ->getPrefixInfo($table_identifier_part);
+    $table_identifier_part = $info['table'];
+    $identifierName = implode($separator, [
+      $table_identifier_part,
+      $column_identifier_part,
+      $tag,
+    ]);
+
+    // Retrieve the max identifier length which is usually 63 characters
+    // but can be altered before PostgreSQL is compiled so we need to check.
+    if (empty($this->maxIdentifierLength)) {
+      $this->maxIdentifierLength = $this->connection
+        ->query("SHOW max_identifier_length")
+        ->fetchField();
+    }
+    if (strlen($identifierName) > $this->maxIdentifierLength) {
+      $saveIdentifier = '"drupal_' . $this
+        ->hashBase64($identifierName) . '_' . $tag . '"';
+    }
+    else {
+      $saveIdentifier = $identifierName;
+    }
+    return $saveIdentifier;
+  }
 }

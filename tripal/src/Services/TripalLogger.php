@@ -53,7 +53,7 @@ class TripalLogger {
   }
 
   /**
-   * Set the name of the module that should be used for loggin.
+   * Set the name of the module that should be used for logging.
    *
    * @param $module
    *   The module name.
@@ -113,6 +113,14 @@ class TripalLogger {
 
     if (isset($options['first_progress_bar'])) {
       $message_str = $prefix . trim($message_str);
+    }
+
+    // In test environements, we are not seeing these messages.
+    // To fix this, we set a global variable in the TripalTestBrowserBase
+    // which we will use here to detect if we should print directly to the terminal.
+    $is_a_test_environment = \Drupal::state()->get('is_a_test_environment', FALSE);
+    if ($is_a_test_environment === TRUE) {
+      print "\n    [TRIPAL LOGGER] " . $this->messageString($message, $context) . "\n";
     }
 
     error_log($message_str);

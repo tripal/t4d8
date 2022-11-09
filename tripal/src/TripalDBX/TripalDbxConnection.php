@@ -900,7 +900,9 @@ abstract class TripalDbxConnection extends PgConnection {
 
     // Then replace schema prefixes (specied in settings).
     $i = 1;
-    while (array_key_exists("$i", $this->prefixes)) {
+    while (array_key_exists("$i", $this->prefixes)
+      AND ($this->prefixes[$i] !== NULL)) {
+
       $this->prefixSearch[] = '{' . $i . ':';
       $this->prefixReplace[] =
         $start_quote
@@ -918,14 +920,17 @@ abstract class TripalDbxConnection extends PgConnection {
     // $this->prefixes['default'] can point to another database like
     // 'other_db.'. In this instance we need to quote the identifiers correctly.
     // For example, "other_db"."PREFIX_table_name".
-    $this->prefixReplace[] =
-      $start_quote
-      . str_replace(
-        '.',
-        $end_quote . '.' . $start_quote,
-        $this->prefixes['default']
-      )
-    ;
+    if (array_key_exists("default", $this->prefixes)
+      AND ($this->prefixes['default'] !== NULL)) {
+
+      $this->prefixReplace[] =
+        $start_quote
+        . str_replace(
+          '.',
+          $end_quote . '.' . $start_quote,
+          $this->prefixes['default']
+        );
+    }
 
     if (!empty($this->schemaName)) {
       $this->prefixSearch[] = '{1:';
@@ -957,14 +962,17 @@ abstract class TripalDbxConnection extends PgConnection {
     // $this->prefixes['default'] can point to another database like
     // 'other_db.'. In this instance we need to quote the identifiers correctly.
     // For example, "other_db"."PREFIX_table_name".
-    $this->prefixReplace[] =
-      $start_quote
-      . str_replace(
-        '.',
-        $end_quote . '.' . $start_quote,
-        $this->prefixes['default']
-      )
-    ;
+    if (array_key_exists("default", $this->prefixes)
+      AND ($this->prefixes['default'] !== NULL)) {
+
+      $this->prefixReplace[] =
+        $start_quote
+        . str_replace(
+          '.',
+          $end_quote . '.' . $start_quote,
+          $this->prefixes['default']
+        );
+    }
     $this->prefixSearch[] = '}';
     $this->prefixReplace[] = $end_quote;
 
@@ -984,6 +992,11 @@ abstract class TripalDbxConnection extends PgConnection {
    */
   protected function shouldUseTripalDbxSchema() :bool {
     $should = FALSE;
+
+    // Check the class/object who is using Tripal DBX:
+    // We do this using the backtrace functionality with the assumption that
+    // the class at the deepest level of the backtrace is the one to check.
+    //
     // We start at 2 because this protected method can only be called at level 1
     // from a local class method so we can skip level 1.
     $bt_level = 2;
@@ -997,12 +1010,29 @@ abstract class TripalDbxConnection extends PgConnection {
       ++$bt_level;
       $calling_class = $backtrace[$bt_level]['class'] ?? '';
       $calling_object = $backtrace[$bt_level]['object'] ?? FALSE;
+
     }
-    if (!empty($this->classesUsingTripalDbx[$calling_class])
-        || (in_array($calling_object, $this->objectsUsingTripalDbx))
-    ) {
+    if (!empty($this->classesUsingTripalDbx[$calling_class])) {
       $should = TRUE;
     }
+    elseif (in_array($calling_object, $this->objectsUsingTripalDbx)) {
+      $should = TRUE;
+    }
+
+    // Check all parents of the class who is using Tripal DBX:
+    // This allows for APIs to be added to the whitelist and all children class
+    // implementations to then automatically use the Tripal DBX managed schema.
+    $class = new \ReflectionClass($calling_class);
+    $inheritance_level = 0;
+    while ($parent = $class->getParentClass()) {
+      $inheritance_level++;
+      $parent_class = $parent->getName();
+      if (!empty($this->classesUsingTripalDbx[$parent_class])) {
+        $should = TRUE;
+      }
+      $class = $parent;
+    }
+
     return $should;
   }
 
@@ -1040,7 +1070,9 @@ abstract class TripalDbxConnection extends PgConnection {
    *   The same query passed in  but now with properly prefixed table names.
    */
   public function prefixTables($sql) {
+
     // Make sure there is no extra "{number:" in the query.
+    $matches = [];
     if (preg_match_all('/\{(\d+):/', $sql, $matches)) {
       $max_index = array_key_last($this->extraSchemas) ?? 1;
       foreach ($matches[1] as $index) {
@@ -1058,6 +1090,19 @@ abstract class TripalDbxConnection extends PgConnection {
           throw new ConnectionException(
             "No main Tripal DBX managed schema set for current connection while it has been referenced in the SQL statement:\n$sql."
           );
+        }
+      }
+    }
+
+    // Check if any tables have already been prefixed. This can happen because
+    // Drupal uses different routes to convert a Select, Insert or Update to a
+    // string which may result in calling this function more than once. If so,
+    // we don't want to repeat it so remove the curly braces from the tables
+    // that have been prefixed already. These should have a period in the table name.
+    if (preg_match_all('/\{(.+?)\}/', $sql, $matches)) {
+      foreach ($matches[1] as $table) {
+        if (preg_match('/^.+?\./', $table)) {
+          $sql = str_replace("{" . $table .  "}", $table, $sql);
         }
       }
     }
