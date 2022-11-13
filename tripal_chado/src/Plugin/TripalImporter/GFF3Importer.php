@@ -857,6 +857,11 @@ class GFF3Importer extends ChadoImporterBase {
       ];
       // @todo convert api call
       $cvterm = (object) chado_insert_cvterm($term, ['update_existing' => FALSE], $this->chado_schema_main);
+      
+      // TODO: Figure out how to add a ChadoTerm using the ChadoTermsInit 
+      $cti = new \Drupal\tripal_chado\Services\ChadoTermsInit;
+
+
       $cvterm_match = $cvterm;
     }
 
